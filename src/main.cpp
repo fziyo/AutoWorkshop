@@ -6,12 +6,16 @@
 
 int main(int argc, char *argv[])
 {
-    qCInfo(logApp) << "main started!";
+#ifdef QT_DEBUG
+    Log::init(true);
+#else
+    Log::init(false);
+#endif
     QApplication a(argc, argv);
     // a.setStyle(QStyleFactory::create("Fusion"));
     MainWindow w;
     w.show();
-    qCInfo(logApp) << "MainWindow constructed";
+    LOG_DEBUG(logApp) << "MainWindow constructed";
 
     return a.exec();
 }

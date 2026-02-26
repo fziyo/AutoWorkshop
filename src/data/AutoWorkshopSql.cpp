@@ -12,32 +12,48 @@
 AutoWorkshopSql::AutoWorkshopSql()
 {
     QString connectionName = "autoworkshop_vann";
+    LOG_DEBUG(logDb) << "Initializing database connection connectionName=" << connectionName;
     if (QSqlDatabase::contains(connectionName))
+    {
         db = QSqlDatabase::database(connectionName);
+        LOG_DEBUG(logDb) << "Use existing connection";
+    }
     else
+    {
         db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
-
+        LOG_DEBUG(logDb) << "Create new connection";
+    }
 }
 
 bool AutoWorkshopSql::openDb()
 {
     if (db.isOpen())
+    {
         return true;
+        LOG_DEBUG(logDb) << "Database already open";
+    }
 
-    QString dirPath = QStandardPaths::writableLocation(
-        QStandardPaths::AppDataLocation);
+    QString dirPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 
     QDir().mkpath(dirPath);
 
     QString path = dirPath + "/autoworkshop_vann.db";
     db.setDatabaseName(path);
-
-    return db.open();
+    LOG_DEBUG(logDb) << "Opening database path=" << path;
+    if (!de.open())
+    {
+        LOG_ERROR(logDb) << "Failed to open database " << db.lastError().text();
+        return false;
+    }
+    LOG_INFO(logDb) << "Database open success";
+    return true;
 }
 
 bool AutoWorkshopSql::isOpen() const
 {
-    return db.isValid() && db.isOpen();
+    bool status = db.isValid() && db.isOpen();
+    LOG_DEBUG(logDb) << "Database status isValid=" <<db.isValid() << "isOpen=" << db.isOpen();
+    return status;
 }
 
 void AutoWorkshopSql::close()
@@ -63,33 +79,45 @@ bool AutoWorkshopSql::initSchema()
         return false;
     }
 
-    qDebug() << "Db is open. Create tables if not existed...";
+    LOG_DEBUG(logDb) << "Initializing database schema";
 
     // crate a query object
     //QSqlQuery query(db);
     auto query = createQuery();
 
-    // users table
-    if(!query.exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL);"))
+    auto execOrFail = [&](const QString& queryStr, const QString& table) -> bool
     {
-        lastDbError = query.lastError().text();
-        return false;
+        if (!query.exec(queryStr))
+        {
+            lastDbError = query.lastError().text();
+            LOG_ERROR(logDb) << "Failed to create table: " << table << lastDbError;
+            return false;
+        }
+        return true;
+    };
+
+    // users table
+    if(!execOrFail("CREATE TABLE IF NOT EXISTS users ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "username TEXT UNIQUE NOT NULL, "
+                    "password TEXT NOT NULL);", "users"))
+    {
+         return false;
     }
 
     // employees
 
-    if(!query.exec("CREATE TABLE IF NOT EXISTS employees ("
+    if(!execOrFail("CREATE TABLE IF NOT EXISTS employees ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "name TEXT NOT NULL, "
                     "tel TEXT, "
-                    "create_at TEXT);"))
+                    "create_at TEXT);", "employees"))
     {
-        lastDbError = query.lastError().text();
         return false;
     }
 
     // emp_schedule
-    if(!query.exec("CREATE TABLE IF NOT EXISTS emp_schedule ("
+    if(!execOrFail("CREATE TABLE IF NOT EXISTS emp_schedule ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "emp_id INTEGER NOT NULL, "
                     "ticket_id INTEGER NOT NULL, "
@@ -98,14 +126,13 @@ bool AutoWorkshopSql::initSchema()
                     "slot1 INTEGER, "
                     "slot2 INTEGER, "
                     "slot3 INTEGER, "
-                    "slot4 INTEGER);"))
+                    "slot4 INTEGER);", "emp_schedule"))
     {
-        lastDbError = query.lastError().text();
         return false;
     }
 
     // tickets table
-    if(!query.exec("CREATE TABLE IF NOT EXISTS tickets ("
+    if(!execOrFail("CREATE TABLE IF NOT EXISTS tickets ("
                     "id integer PRIMARY KEY AUTOINCREMENT, "
                     "customer TEXT, "
                     "brand text, "
@@ -119,39 +146,35 @@ bool AutoWorkshopSql::initSchema()
                     "slot4 int, "
                     "description text, "
                     "status INTEGER, "
-                    "total_to_pay REAL);"))
+                    "total_to_pay REAL);", "tickets"))
     {
-        lastDbError = query.lastError().text();
         return false;
     }
 
     // ticket_parts
-    if(!query.exec("CREATE TABLE IF NOT EXISTS ticket_parts ("
+    if(!execOrFail("CREATE TABLE IF NOT EXISTS ticket_parts ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                     "ticket_id INTEGER NOT NULL, "
                     "part_name TEXT, "
                     "amount REAL, "
-                    "unit_price REAL);"))
+                    "unit_price REAL);", "ticket_parts"))
     {
-        lastDbError = query.lastError().text();
         return false;
     }
 
     // ticket_estimate
-    if(!query.exec("CREATE TABLE IF NOT EXISTS ticket_estimate ("
+    if(!execOrFail("CREATE TABLE IF NOT EXISTS ticket_estimate ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                     "ticket_id INTEGER NOT NULL, "
                     "description TEXT, "
                     "expected_cost TEXT, "
                     "accepted INTEGER,"
-                    "created_at TEXT);"))
+                    "created_at TEXT);", "ticket_estimate"))
     {
-        lastDbError = query.lastError().text();
         return false;
     }
 
-
-    qDebug() << "Tables created success: " << db.tables();
+    LOG_DEBUG(logDb) << "Database schema initialize success";
 
     return true;
 
@@ -164,30 +187,39 @@ bool AutoWorkshopSql::verifyUser(const QString& username, const QString& passwor
     if(!db.isOpen())
     {
         lastDbError = "DB is not open.";
+        LOG_ERROR(logDb) << "verifyUser failed" << lastDbError;
         return false;
     }
 
     auto query = createQuery();
     query.prepare("SELECT id FROM users WHERE username=? AND password=? ");
     query.addBindValue(username); query.addBindValue(password);
-    qDebug() << "connection name:" << db.connectionName();
-    qDebug() << "querying" + db.databaseName();
+    LOG_DEBUG(logDb) << "Verifying user"
+                     << "username=" << username;
 
     if(!query.exec())
     {
         lastDbError = query.lastError().text();
+        LOG_ERROR(logDb) << "verifyUser sql failed" << lastDbError;
         return false;
     }
-    qDebug() << "executed. isSelect=" << query.isSelect();
 
     if(!query.next())
     {
         lastDbError = "Invalid username or password.";
+        LOG_INFO(logDb)
+            << "Login failed"
+            << "username=" << username;
         return false;
     }
 
-    if(userId) *userId = query.value(0).toInt();
+    if (userId) *userId = query.value(0).toInt();
     // if(role) *role = query.value(1).toString();
+
+    LOG_INFO(logDb)
+        << "Login success"
+        << "username=" << username
+        << "userId=" << *userId;
     return true;
 }
 
@@ -196,7 +228,8 @@ bool AutoWorkshopSql::checkUserExist(const QString& username)
     lastDbError.clear();
     if (!db.isOpen())
     {
-        lastDbError = "Db is not open.";
+        lastDbError = "Db is not open";
+        LOG_ERROR(logDb) << "checkUserExist failed" << lastDbError;
         return false;
     }
 
@@ -206,17 +239,16 @@ bool AutoWorkshopSql::checkUserExist(const QString& username)
     if (!query.exec())
     {
         lastDbError = query.lastError().text();
+        LOG_ERROR(logDb) << "checkUserExist sql failed" << lastDbError;
         return false;
     }
 
     if (!query.next())
     {
-        lastDbError = "username does not exist.";
+        LOG_DEBUG(logDb) << "User does not exist" << "username=" << username;
         return false;
     }
-
     return true;
-
 }
 
 bool AutoWorkshopSql::createAccount(const QString& username, const QString& password)
@@ -224,7 +256,8 @@ bool AutoWorkshopSql::createAccount(const QString& username, const QString& pass
     lastDbError.clear();
     if (!isOpen())
     {
-        lastDbError = "Db is not open.";
+        lastDbError = "Db is not open";
+        LOG_ERROR(logDb) << "checkUserExist failed" << lastDbError;
         return false;
     }
 

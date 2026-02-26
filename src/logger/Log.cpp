@@ -1,15 +1,35 @@
 #include "Log.h"
-// app
+#include <QDateTime>
+#include <QFile>
+#include <QTextStream>
+
 Q_LOGGING_CATEGORY(logApp, "app")
-
-// ui
-Q_LOGGING_CATEGORY(logUi, "app.ui")
-Q_LOGGING_CATEGORY(logUiWidgetsAddEmp, "app.ui.widgets.addEmp")
-
-// service
-Q_LOGGING_CATEGORY(logAuth, "app.service.auth")
-Q_LOGGING_CATEGORY(logTicket, "app.service.ticket")
-Q_LOGGING_CATEGORY(logEmployeeSchedule, "app.service.employeeSchedule")
-
-// db
+Q_LOGGING_CATEGORY(logUi, "ui")
+Q_LOGGING_CATEGORY(logAuth, "service")
 Q_LOGGING_CATEGORY(logDb, "app.db")
+
+void Log::init(bool enableDebug)
+{
+    QString rules;
+
+    if (enableDebug)
+    {
+        rules = "*.debug=true\n"
+                "*.info=true\n";
+    }
+    else
+    {
+        rules = "*.debug=false\n"
+                "*.info=true\n";
+    }
+
+    QLoggingCategory::setFilterRules(rules);
+
+    qSetMessagePattern(
+        "%{time yyyy-MM-dd hh:mm:ss.zzz} "
+        "[%{type}] "
+        "[%{category}] "
+        "%{file}:%{function}：%{line} - "
+        "%{message}"
+        );
+}

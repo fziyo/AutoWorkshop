@@ -1,7 +1,7 @@
 #include "TicketService.h"
 #include "service/ticketService/TimeSlotsProvider.h"
 #include "logger/Log.h"
-
+#include <QDebug>
 TicketService::TicketService(AutoWorkshopSql* db):m_db(db)
 {
 
@@ -15,6 +15,8 @@ TicketService::TicketService(AutoWorkshopSql* db):m_db(db)
  */
 QList<Ticket> TicketService::getWeeklyTickets(const QDate& startDate, const QDate& endDate)
 {
+    qDebug() << "TicketService this =" << this
+             << "m_db =" << m_db;
     return m_db->getWeeklyTickets(startDate, endDate);
 }
 
