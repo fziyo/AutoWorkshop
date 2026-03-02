@@ -5,8 +5,8 @@
 
 Q_LOGGING_CATEGORY(logApp, "app")
 Q_LOGGING_CATEGORY(logUi, "ui")
-Q_LOGGING_CATEGORY(logAuth, "service")
-Q_LOGGING_CATEGORY(logDb, "app.db")
+Q_LOGGING_CATEGORY(logService, "service")
+Q_LOGGING_CATEGORY(logDb, "data.db")
 
 void Log::init(bool enableDebug)
 {

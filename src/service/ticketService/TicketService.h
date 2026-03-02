@@ -2,10 +2,6 @@
 #define TICKETSERVICE_H
 #include "data/AutoWorkshopSql.h"
 
-
-
-
-
 class TicketService
 {
 public:

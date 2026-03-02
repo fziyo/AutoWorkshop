@@ -15,8 +15,7 @@ TicketService::TicketService(AutoWorkshopSql* db):m_db(db)
  */
 QList<Ticket> TicketService::getWeeklyTickets(const QDate& startDate, const QDate& endDate)
 {
-    qDebug() << "TicketService this =" << this
-             << "m_db =" << m_db;
+    qDebug() << "m_db pointer:" << m_db;
     return m_db->getWeeklyTickets(startDate, endDate);
 }
 
@@ -31,15 +30,12 @@ TicketStatus TicketService::calculateStatus(const Ticket& ticket, const QDate& c
 {
     if(QDate::fromString(ticket.date, "yyyy-MM-dd") < currentDate.addDays(-7))
     {   // ticket one week ago - closed
-        qCInfo(logTicket) << "Ticke id: " << ticket.id << " new status: Closed";
         return TicketStatus::Closed;
-
     }
 
     if (QDate::fromString(ticket.date, "yyyy-MM-dd") > currentDate)
     {
         // future work - created
-        qCInfo(logTicket) << "Ticke id: " << ticket.id << " new status: Created";
         return TicketStatus::Created;
 
     }
@@ -50,21 +46,16 @@ TicketStatus TicketService::calculateStatus(const Ticket& ticket, const QDate& c
         auto [start, end] = calculateTimeRange(ticket);
         if (end <= currentTime)
         {
-            qCInfo(logTicket) << "Ticke id: " << ticket.id << " new status: Created";
             return TicketStatus::Created;
         }
         if (start <= currentTime)
         {
-            qCInfo(logTicket) << "Ticke id: " << ticket.id << " new status: InProgress";
             return TicketStatus::InProgress;
         }
 
-        qCInfo(logTicket) << "Ticke id: " << ticket.id << " new status: Created";
         return TicketStatus::Created;
 
     }
-
-    qCInfo(logTicket) << "Ticke id: " << ticket.id << " new status: Done";
     return TicketStatus::Done;
 }
 
@@ -78,7 +69,6 @@ Ticket TicketService::refreshStatus(const Ticket& ticket)
     TicketStatus newStatus = calculateStatus(ticket, QDate::currentDate(), QTime::currentTime());
 
     if (newStatus != ticket.status) {
-        qCInfo(logTicket) << "Update status in db: " + ticket.id;
         m_db->updateTicketStatus(ticket, newStatus);
     }
 

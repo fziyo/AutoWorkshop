@@ -22,7 +22,7 @@ public:
     QString getLastDbError() const;
     QSqlQuery createQuery();
 
-    bool verifyUser(const QString& username, const QString& password, int* userId = nullptr, QString* role = nullptr);
+    bool verifyUser(const QString& username, const QString& password, int* userId = nullptr);
     bool checkUserExist(const QString& username);
     bool createAccount(const QString& username, const QString& password);
     Ticket getTicket(int ticketId);

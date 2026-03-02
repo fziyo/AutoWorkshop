@@ -25,7 +25,7 @@ LoginResult AuthService::login(const QString& username, const QString& password)
 
     // check if user exists in db and get id
     int userId = -1;
-    if (!db.verifyUser(username, password, &userId, nullptr))
+    if (!db.verifyUser(username, password, &userId))
     {
         loginResult.ok = false;
         loginResult.error = db.getLastDbError() + " verify user failed.";;

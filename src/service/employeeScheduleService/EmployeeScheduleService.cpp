@@ -8,7 +8,10 @@ EmployeeScheduleService::EmployeeScheduleService(AutoWorkshopSql* db):m_db(db)
 
 EmpAvailability EmployeeScheduleService::checkEmployeeAvailability(const QString& empId, const QString& appointedDate, const QList<int>& timeSlots)
 {
-    qCInfo(logEmployeeSchedule) << "Check employee availability.";
+    LOG_DEBUG(logService)
+        << "Check employee availability"
+        << "empId=" << empId
+        << "date=" << appointedDate;
     // TODO: no slot picked, return
     bool slotsPicked = false;
     for (int timeSlot : timeSlots)
@@ -21,21 +24,30 @@ EmpAvailability EmployeeScheduleService::checkEmployeeAvailability(const QString
     }
     if (!slotsPicked)
     {
-        qCInfo(logEmployeeSchedule) << "No time slot selected.";
+        LOG_WARN(logService)
+            << "No time slot selected"
+            << "empId=" << empId
+            << "date=" << appointedDate;
         return EmpAvailability::NoSlotSelected;
     }
-    qCInfo(logEmployeeSchedule) << "Slots selected. Check employee availability.";
-     qDebug() << "DB pointer:" << m_db;
+
     // TODO: emp available
     int conflicts = m_db->countScheduleConflicts(empId, appointedDate, timeSlots);
     if (conflicts > 0)
     {
-        qCInfo(logEmployeeSchedule) << "Employee not available.";
+        LOG_DEBUG(logService)
+            << "Employee not available"
+            << "empId=" << empId
+            << "date=" << appointedDate
+            << "conflicts=" << conflicts;
         return EmpAvailability::NotAvailable;
     }
 
     // TODO: emp unavailable
-    qCInfo(logEmployeeSchedule) << "Employee available.";
+    LOG_DEBUG(logService)
+        << "Employee available"
+        << "empId=" << empId
+        << "date=" << appointedDate;
     return EmpAvailability::Available;
 
 }

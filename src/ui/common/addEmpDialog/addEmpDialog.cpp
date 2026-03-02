@@ -16,7 +16,6 @@ AddEmpDialog::AddEmpDialog(EmployeeService* employeeService, QWidget *parent)
 
 void AddEmpDialog::onClickOKButton()
 {
-    qCInfo(logUiWidgetsAddEmp) << "Clicked ok button";
     // check validation
     QString name = ui->nameLineEdit->text().trimmed();
     QString tel = ui->telLineEdit->text().trimmed();
@@ -45,6 +44,5 @@ void AddEmpDialog::onClickCancelButton()
 
 AddEmpDialog::~AddEmpDialog()
 {
-    qCInfo(logUiWidgetsAddEmp) << "AddEmpDialog destroyed";
     delete ui;
 }

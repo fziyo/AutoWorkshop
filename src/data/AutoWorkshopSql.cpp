@@ -40,7 +40,7 @@ bool AutoWorkshopSql::openDb()
     QString path = dirPath + "/autoworkshop_vann.db";
     db.setDatabaseName(path);
     LOG_DEBUG(logDb) << "Opening database path=" << path;
-    if (!de.open())
+    if (!db.open())
     {
         LOG_ERROR(logDb) << "Failed to open database " << db.lastError().text();
         return false;
@@ -181,7 +181,7 @@ bool AutoWorkshopSql::initSchema()
 }
 
 // db level: provide api for user login verification
-bool AutoWorkshopSql::verifyUser(const QString& username, const QString& password, int* userId, QString* role)
+bool AutoWorkshopSql::verifyUser(const QString& username, const QString& password, int* userId)
 {
     lastDbError.clear();
     if(!db.isOpen())
@@ -257,7 +257,7 @@ bool AutoWorkshopSql::createAccount(const QString& username, const QString& pass
     if (!isOpen())
     {
         lastDbError = "Db is not open";
-        LOG_ERROR(logDb) << "checkUserExist failed" << lastDbError;
+        LOG_ERROR(logDb) << "createAccount failed" << lastDbError;
         return false;
     }
 
@@ -267,6 +267,7 @@ bool AutoWorkshopSql::createAccount(const QString& username, const QString& pass
     if (!query.exec())
     {
         lastDbError = query.lastError().text();
+        LOG_ERROR(logDb) << "createAccount failed" << lastDbError;
         return false;
     }
 
@@ -282,7 +283,7 @@ Ticket AutoWorkshopSql::getTicket(int ticketId)
     query.bindValue(":ticketId", ticketId);
 
     if (!query.exec()) {
-        qDebug() << "Query failed:" << query.lastError().text();
+        LOG_ERROR(logDb) << "getTicket query failed:" << query.lastError().text();
         return ticket;
     }
 
@@ -315,7 +316,7 @@ QList<Ticket> AutoWorkshopSql::filterTicketById(const QString &input)
     query.bindValue(":input", "%" + input + "%");
 
     if (!query.exec()) {
-        qDebug() << "Query failed:" << query.lastError().text();
+        LOG_ERROR(logDb) << "filterTicketById query failed:" << query.lastError().text();
         return tickets; // Return an empty list if the query fails
     }
 
@@ -353,7 +354,7 @@ QList<Ticket> AutoWorkshopSql::getWeeklyTickets(const QDate& startDate, const QD
     QList<Ticket> tickets;
     // Execute the query
     if (!query.exec(queryString)) {
-        qDebug() << "Database query error:" << query.lastError();
+        LOG_ERROR(logDb) << "getWeeklyTickets query error:" << query.lastError();
         return tickets;
     }
 
@@ -384,11 +385,10 @@ bool AutoWorkshopSql::updateTicketStatus(const Ticket& ticket, TicketStatus newS
     QString queryString = QString("update tickets set status = %1 where id = %2")
                               .arg(ticketStatusToInt(newStatus))
                               .arg(ticket.id);
-    qDebug() << queryString;
 
     if (!query.exec(queryString))
     {
-        qDebug() << "Car_workshop_sql::updateTickeStatus Query failed:" << query.lastError();
+        LOG_ERROR(logDb) << "updateTickeStatus qSuery failed:" << query.lastError();
         return false;
     }
     return true;
@@ -400,11 +400,10 @@ bool AutoWorkshopSql::updateTicketStatusById(int ticketId, int newStatus)
     QString queryString = QString("update tickets set status = %1 where id = %2")
                               .arg(newStatus)
                               .arg(ticketId);
-    qDebug() << queryString;
 
     if (!query.exec(queryString))
     {
-        qDebug() << "Car_workshop_sql::updateTickeStatus Query failed:" << query.lastError();
+        LOG_ERROR(logDb) << "updateTickeStatus Query failed:" << query.lastError();
         return false;
     }
     return true;
@@ -420,8 +419,22 @@ QList<Ticket> AutoWorkshopSql::getAllTickets()
 {
     QList<Ticket> tickets;
 
+    if (!db.isOpen()) {
+        LOG_ERROR(logDb) << "getAllTickets failed: DB not open";
+        return tickets;
+    }
+
     auto query = createQuery();
-    query.exec("select * from tickets");
+
+    LOG_DEBUG(logDb) << "Executing getAllTickets query";
+
+    if (!query.exec("SELECT * FROM tickets")) {
+        lastDbError = query.lastError().text();
+        LOG_ERROR(logDb)
+            << "getAllTickets SQL failed"
+            << lastDbError;
+        return tickets;
+    }
     while (query.next()) {
         qDebug() << "DB file:" << query.value(2).toString();
         Ticket ticket;
@@ -444,24 +457,9 @@ QList<Ticket> AutoWorkshopSql::getAllTickets()
 
         tickets.append(ticket);
     }
-    qDebug() << "==== Tickets fetched:" << tickets.size() << "====";
-
-    for (int i = 0; i < tickets.size(); ++i) {
-        const Ticket& t = tickets[i];
-        qDebug()
-            << "Ticket[" << i << "]"
-            << "id=" << t.id
-            << "customer=" << t.customer
-            << "brand=" << t.brand
-            << "model=" << t.model
-            << "regisId=" << t.resgisId
-            << "empNames=" << t.empNames
-            << "date=" << t.date
-            << "slots=" << t.timeSlots
-            << "status=" << ticketStatusToString(t.status);
-    }
-
-
+    LOG_DEBUG(logDb)
+        << "getAllTickets success"
+        << "count=" << tickets.size();
     return tickets;
 }
 
@@ -475,7 +473,7 @@ bool AutoWorkshopSql::addEmployee(const EmployeeDto& info)
 
     if (!query.exec())
     {
-        qCCritical(logDb) << "Error executing SQL query:"<<query.lastError();
+        LOG_ERROR(logDb) << query.lastError();
         lastDbError = query.lastError().text();
         return false;
     }
@@ -483,6 +481,7 @@ bool AutoWorkshopSql::addEmployee(const EmployeeDto& info)
     if (query.next())
     {
         lastDbError = "Employee exists.";
+        LOG_ERROR(logDb) << lastDbError;
         return false;
     }
 
@@ -492,8 +491,8 @@ bool AutoWorkshopSql::addEmployee(const EmployeeDto& info)
     query.bindValue(":create_at", QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"));
 
     if (!query.exec()) {
-        qCCritical(logDb) << "Error executing SQL query:"<<query.lastError();
         lastDbError = query.lastError().text();
+        LOG_ERROR(logDb) << lastDbError;
         return false;
     }
 
@@ -508,8 +507,8 @@ QList<Employee> AutoWorkshopSql::getAllEmployees()
     query.prepare("select * from employees");
     if (!query.exec())
     {
-        qCCritical(logDb) << "Error executing SQL query:"<<query.lastError();
         lastDbError = query.lastError().text();
+        LOG_ERROR(logDb) << lastDbError;
         return employees;
     }
 
@@ -523,7 +522,7 @@ QList<Employee> AutoWorkshopSql::getAllEmployees()
         employees.append(employee);
     }
 
-    qCInfo(logDb) << "Executing query getting all employees success!" << " Size: " << employees.size();
+    LOG_DEBUG(logDb) << "Executing query getting all employees success!" << " Size: " << employees.size();
 
     return employees;
 }
@@ -537,8 +536,8 @@ QList<Employee> AutoWorkshopSql::filterByName(const QString& name)
 
     if (!query.exec())
     {
-        qCCritical(logDb) << "Error executing SQL query:"<<query.lastError();
         lastDbError = query.lastError().text();
+        LOG_ERROR(logDb) << lastDbError;
         return employees;
     }
 
@@ -551,8 +550,6 @@ QList<Employee> AutoWorkshopSql::filterByName(const QString& name)
         employee.createTime = query.value("create_at").toString();
         employees.append(employee);
     }
-
-    qCInfo(logDb) << "Executing query getting all employees success!" << " Size: " << employees.size();
 
     return employees;
 }
@@ -569,9 +566,16 @@ int AutoWorkshopSql::countScheduleConflicts(const QString& empId, const QString&
         }
 
     }
-    qCInfo(logDb) << "Slot conditions: " << slotConditions;
+
     if (slotConditions.isEmpty())
+    {
+        LOG_DEBUG(logDb)
+        << "No time slots selected, skip conflict check"
+        << "empId=" << empId
+        << "date=" << appointedDate;
         return 0;
+    }
+
     auto query = createQuery();
     QString sqlString = QString("SELECT COUNT(*) FROM emp_schedule WHERE emp_id = :empId AND schedule_date = :appointedDate AND %1")
         .arg(slotConditions.join(" AND "));
@@ -580,8 +584,11 @@ int AutoWorkshopSql::countScheduleConflicts(const QString& empId, const QString&
     query.bindValue(":appointedDate", appointedDate);
     if (!query.exec())
     {
-        qCCritical(logDb) << "Error executing SQL query:"<<query.lastError();
         lastDbError = query.lastError().text();
+        LOG_ERROR(logDb)
+            << "countScheduleConflicts SQL failed"
+            << lastDbError;
+
         return 0;
     }
 

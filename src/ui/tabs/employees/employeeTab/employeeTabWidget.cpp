@@ -32,7 +32,6 @@ QStackedWidget* EmployeeTabWidget::getStack() const
 
 void EmployeeTabWidget::onClickAddButton()
 {
-    qCInfo(logUiWidgetsAddEmp) << "Clicked add button";
     AddEmpDialog addEmpDialog(employeeService, this);
     if (addEmpDialog.exec() == QDialog::Accepted)
     {
