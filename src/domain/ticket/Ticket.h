@@ -17,6 +17,3 @@ struct Ticket   // table ticket
 };
 #endif // TICKET_H
 
-// "CREATE TABLE IF NOT EXISTS tickets (id integer PRIMARY KEY AUTOINCREMENT, customer TEXT, brand text, model text, "
-// "regis_id text, emp_name TEXT, date text, slot0 int, slot1 int, slot2 int, slot3 int, slot4 int, "
-//     "description text, status INTEGER, total_to_pay REAL);"

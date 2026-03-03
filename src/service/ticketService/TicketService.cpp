@@ -1,5 +1,5 @@
 #include "TicketService.h"
-#include "service/ticketService/TimeSlotsProvider.h"
+#include "domain/timeSlot/TimeSlotsProvider.h"
 #include "logger/Log.h"
 #include <QDebug>
 TicketService::TicketService(AutoWorkshopSql* db):m_db(db)
@@ -90,9 +90,9 @@ QPair<QTime, QTime> TicketService::calculateTimeRange(const Ticket& ticket)
         {
             if (!startTime.isValid())
             {
-                startTime = timeSlot.start;
+                startTime = timeSlot.startTime;
             }
-            endTime = timeSlot.end;
+            endTime = timeSlot.endTime;
         }
     }
     return {startTime, endTime};

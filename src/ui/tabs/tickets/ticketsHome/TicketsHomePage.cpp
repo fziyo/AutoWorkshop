@@ -1,6 +1,6 @@
 #include "TicketsHomePage.h"
 #include "ui_TicketsHomePage.h"
-#include "service/ticketService/TimeSlotsProvider.h"
+#include "domain/timeSlot/TimeSlotsProvider.h"
 #include <QMessageBox>
 #include "ui/utils/TabsPages.h"
 
@@ -32,15 +32,12 @@ TicketsHomePage::TicketsHomePage(TicketService* ticketService, EmployeeService* 
 
 void TicketsHomePage::displayAllTickets(const QList<Ticket>& tickets )
 {
-
-
     // tableWidget_emp in ui for displaying the data:
     ui->ticketsTable->clearContents();
     ui->ticketsTable->setRowCount(tickets.size());
 
     // set status combobox
     const QStringList texts = {"Created", "In progress", "Done", "Closed"};
-
 
     int row = 0;
     foreach (const Ticket &ticket, tickets) {
@@ -61,7 +58,7 @@ void TicketsHomePage::displayAllTickets(const QList<Ticket>& tickets )
         for(int i =0; i <5; ++i)
         {
             if (ticket.timeSlots[i] == 1)
-                timeStr.append(TimeSlotProvider::timeSlots().at(i).start.toString("hh:mm") + " - " + TimeSlotProvider::timeSlots().at(i).end.toString("hh:mm"));
+                timeStr.append(TimeSlotProvider::timeSlots().at(i).startTime.toString("hh:mm") + " - " + TimeSlotProvider::timeSlots().at(i).endTime.toString("hh:mm"));
         }
         QString timeString = timeStr.join(" ");
 

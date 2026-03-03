@@ -7,7 +7,7 @@ class EmployeeScheduleService
 {
 public:
     EmployeeScheduleService(AutoWorkshopSql* db);
-    EmpAvailability checkEmployeeAvailability(const QString& empId, const QString& appointedDate, const QList<int>& timeSlots);
+    EmpAvailability checkEmployeeAvailability(const QString& empId, const QDate& appointedDate, const QList<int>& timeSlots);
 
 private:
     AutoWorkshopSql* m_db;

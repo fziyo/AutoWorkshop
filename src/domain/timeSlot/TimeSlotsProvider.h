@@ -7,8 +7,8 @@
 struct TimeSlot
 {
     int index;
-    QTime start;
-    QTime end;
+    QTime startTime;
+    QTime endTime;
 };
 
 class TimeSlotProvider
@@ -26,7 +26,5 @@ public:
         return timeSlots;
     }
 };
-
-
 
 #endif // TIMESLOTSPROVIDER_H

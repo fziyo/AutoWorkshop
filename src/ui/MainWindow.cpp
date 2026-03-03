@@ -56,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::loadAllTabs()
 {
-    ui->tabWidget->clear();   // 清空Designer自带的 page
+    ui->tabWidget->clear();
     scheduleTab = new ScheduleTabWidget(AppContext::instance().getTicketService(), ui->tabWidget);
     ticketsTab = new TicketsTabWidget(AppContext::instance().getTicketService(), AppContext::instance().getEmployeeService(), AppContext::instance().getEmployeeScheduleService(), ui->tabWidget);
     employeeTab = new EmployeeTabWidget(AppContext::instance().getEmployeeService(), ui->tabWidget);
@@ -66,14 +66,13 @@ void MainWindow::loadAllTabs()
     tabNavigationController->registerTabs(Tabs::TAB_SCHEDULE, scheduleTab->getStack());
     tabNavigationController->registerTabs(Tabs::TAB_TICKETS, ticketsTab->getStack());
     tabNavigationController->registerTabs(Tabs::TAB_EMPLOYEE, employeeTab->getStack());
-    qCInfo(logUi) << "All 3 tabs loaded successfully.";
+    LOG_INFO(logUi) << "All 3 tabs loaded successfully.";
 
 }
 
 void MainWindow::setFirstTabPage()
 {
     ui->tabWidget->setCurrentWidget(scheduleTab);
-    qDebug() << "First tab page is set as schedule.";
 }
 
 bool MainWindow::eventFilter(QObject* watched, QEvent* event)

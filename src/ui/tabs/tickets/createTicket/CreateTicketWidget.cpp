@@ -38,24 +38,31 @@ void CreateTicketWidget::refreshAvailability(QListWidgetItem* item)
 {
     if(item->checkState() == Qt::Checked) {
         // Handle the checked state
-        qCInfo(logUi) << item->text() << " is checked.";
+        LOG_INFO(logUi) << item->text() << " is checked.";
         // query if emp is available
-        QString appointedDate = ui->dateInput->text();   // yyyy-mm-dd
-        qCInfo(logUi) << "Date input: " << appointedDate;
+        QDate selectedDate = ui->dateInput->date();
+        LOG_INFO(logUi) << "Date input: " << selectedDate.toString("yyyy-MM-dd");
         QList<int> timeSlots;
         timeSlots.append(ui->checkBox1->isChecked() ? 1: 0);
         timeSlots.append(ui->checkBox2->isChecked() ? 1: 0);
         timeSlots.append(ui->checkBox3->isChecked() ? 1: 0);
         timeSlots.append(ui->checkBox4->isChecked() ? 1: 0);
         timeSlots.append(ui->checkBox5->isChecked() ? 1: 0);
-        qCInfo(logUi) << "Check boxes states: " << timeSlots;
+
+        LOG_INFO(logUi) << "Check boxes states: " << timeSlots;
         QString empId = item->data(Qt::UserRole).toString();
-        qCInfo(logUi) << "Selected employee id: " << empId;
-        EmpAvailability availability = employeeScheduleService->checkEmployeeAvailability(empId, appointedDate, timeSlots);
+        LOG_INFO(logUi) << "Selected employee id: " << empId;
+        EmpAvailability availability = employeeScheduleService->checkEmployeeAvailability(empId, selectedDate, timeSlots);
         switch (availability)
         {
         case EmpAvailability::NoSlotSelected:
             QMessageBox::information(this, "Tip", "Please check at least 1 slot!");
+            ui->employeeListWidget->blockSignals(true);
+            item->setCheckState(Qt::Unchecked);
+            ui->employeeListWidget->blockSignals(false);
+            break;
+        case EmpAvailability::PastTime:
+            QMessageBox::information(this, "Tip", "Cannot select past time!");
             ui->employeeListWidget->blockSignals(true);
             item->setCheckState(Qt::Unchecked);
             ui->employeeListWidget->blockSignals(false);

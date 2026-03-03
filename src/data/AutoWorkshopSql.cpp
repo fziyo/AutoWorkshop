@@ -554,7 +554,7 @@ QList<Employee> AutoWorkshopSql::filterByName(const QString& name)
     return employees;
 }
 
-int AutoWorkshopSql::countScheduleConflicts(const QString& empId, const QString& appointedDate, const QList<int>& timeSlots)
+int AutoWorkshopSql::countScheduleConflicts(const QString& empId, const QDate& appointedDate, const QList<int>& timeSlots)
 {
     qCInfo(logDb) << "Check employee schedule conflicts. ";
     QStringList slotConditions;
@@ -572,7 +572,7 @@ int AutoWorkshopSql::countScheduleConflicts(const QString& empId, const QString&
         LOG_DEBUG(logDb)
         << "No time slots selected, skip conflict check"
         << "empId=" << empId
-        << "date=" << appointedDate;
+        << "date=" << appointedDate.toString("yyyy-MM-dd");
         return 0;
     }
 
