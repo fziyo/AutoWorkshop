@@ -7,6 +7,7 @@
 ScheduleHomePage::ScheduleHomePage(TicketService* ticketService, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::ScheduleHomePage)
+    , ticketService(ticketService)
 {
     ui->setupUi(this);
     // headers stretch
