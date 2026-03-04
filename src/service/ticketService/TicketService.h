@@ -6,13 +6,13 @@ class TicketService
 {
 public:
     TicketService(AutoWorkshopSql* db);
-    QList<Ticket> getWeeklyTickets(const QDate& startDate, const QDate& endDate);
-    TicketStatus calculateStatus(const Ticket& ticket, const QDate& today, const QTime& now);
-    Ticket refreshStatus(const Ticket& ticket);
-    QPair<QTime, QTime> calculateTimeRange(const Ticket& ticket);
-    bool updateTicketStatus(const Ticket& ticket, TicketStatus newStatus);
+    QList<TicketDetailsDto> getWeeklyTickets(const QDate& startDate, const QDate& endDate);
+    TicketStatus calculateStatus(const TicketDetailsDto& ticket, const QDate& today, const QTime& now);
+    TicketDetailsDto refreshStatus(const TicketDetailsDto& ticket);
+    QPair<QTime, QTime> calculateTimeRange(const TicketDetailsDto& ticket);
+    bool updateTicketStatus(const TicketDetailsDto& ticket, TicketStatus newStatus);
     bool updateTicketStatusById(const int ticketId, const int newStatus);
-    QList<Ticket> getAllTickets();
+    QList<TicketDetailsDto> getAllTickets();
     void setError(QString err);
     QString getError();
 private:

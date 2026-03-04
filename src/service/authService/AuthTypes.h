@@ -2,7 +2,7 @@
 #define AUTHTYPES_H
 #include <optional>
 #include <QString>
-#include "app/UserSession.h"
+#include "utils/UserSession.h"
 
 struct LoginResult {
     bool ok = false;

@@ -1,6 +1,6 @@
 #include "AddEmpDialog.h"
 #include "ui_AddEmpDialog.h"
-#include "logger/Log.h"
+#include "log/Log.h"
 #include <QMessageBox>
 #include "dtos/EmployeeDto.h"
 

@@ -4,10 +4,11 @@
 #include <QString>
 #include <QSqlDatabase>
 #include <QDate>
-#include "domain/ticket/Ticket.h"
-#include "domain/employee/Employee.h"
-#include "domain/ticket/TicketStatus.h"
+#include "entity/Ticket.h"
+#include "entity/Employee.h"
+#include "utils/TicketStatus.h"
 #include "dtos/EmployeeDto.h"
+#include "dtos/TicketDetailsDto.h"
 
 class AutoWorkshopSql
 {
@@ -25,12 +26,12 @@ public:
     bool verifyUser(const QString& username, const QString& password, int* userId = nullptr);
     bool checkUserExist(const QString& username);
     bool createAccount(const QString& username, const QString& password);
-    Ticket getTicket(int ticketId);
-    QList<Ticket> filterTicketById(const QString &input);
-    QList<Ticket> getWeeklyTickets(const QDate& startDate, const QDate& endDate);
-    bool updateTicketStatus(const Ticket& ticket, TicketStatus newStatus);
+    TicketDetailsDto getTicket(int ticketId);
+    //QList<Ticket> filterTicketById(const QString &input);
+    QList<TicketDetailsDto> getWeeklyTickets(const QDate& startDate, const QDate& endDate);
+    bool updateTicketStatus(const TicketDetailsDto& ticket, TicketStatus newStatus);
     bool updateTicketStatusById(int ticketId, int newStatus);
-    QList<Ticket> getAllTickets();
+    QList<TicketDetailsDto> getAllTicketDetails();
 
     // empployee
     bool addEmployee(const EmployeeDto& info);

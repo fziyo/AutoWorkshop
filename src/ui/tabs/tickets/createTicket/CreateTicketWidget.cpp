@@ -1,7 +1,7 @@
 #include "CreateTicketWidget.h"
 #include "ui_CreateTicketWidget.h"
-#include "domain/employee/Employee.h"
-#include "logger/Log.h"
+#include "entity/Employee.h"
+#include "log/Log.h"
 #include <QMessageBox>
 
 CreateTicketWidget::CreateTicketWidget(TicketService* ticketService, EmployeeService* employeeService, EmployeeScheduleService* employeeScheduleService, QWidget *parent)
@@ -18,7 +18,10 @@ CreateTicketWidget::CreateTicketWidget(TicketService* ticketService, EmployeeSer
     connect(ui->employeeListWidget, &QListWidget::itemChanged, this, &CreateTicketWidget::refreshAvailability);
 
     // when cancle is clicked
-    connect(ui->cancelButton, &QPushButton::clicked, this, &CreateTicketWidget::onClickedCancel);
+    connect(ui->cancelButton, &QPushButton::clicked, this, &CreateTicketWidget::cancelCreateTicket);
+
+    // ok is clicked
+    //connect(ui->okButton, &QPushButton::clicked, this, &CreateTicketWidget::saveTicket);
 }
 
 
@@ -112,13 +115,99 @@ void CreateTicketWidget::clearState()
     }
 }
 
-void CreateTicketWidget::onClickedCancel()
+void CreateTicketWidget::cancelCreateTicket()
 {
     if (hasUnsavedChanges() && QMessageBox::question(this, "Unsaved changes", "Discard current information?") == QMessageBox::No)
         return;
     clearState();
     emit goToRootTab();
 }
+
+bool CreateTicketWidget::validateField(const QString& value, const QString& message, QWidget* focusWidget)
+{
+    if (value.trimmed().isEmpty())
+    {
+        QMessageBox::warning(this, "Validation Error", message);
+        if (focusWidget)
+            focusWidget->setFocus();
+        return false;
+    }
+    return true;
+}
+
+// void CreateTicketWidget::saveTicket()
+// {
+//     Ticket newTicket;
+
+//     // Customer
+//     if (!validateField(ui->customerInput->text(),
+//                           "Customer name is required.",
+//                           ui->customerInput))
+//         return;
+
+//     newTicket.customer = ui->customerInput->text().trimmed();
+
+
+//     //Model
+//     if (!validateField(ui->modelInput->text(),
+//                           "Model is required.",
+//                           ui->modelInput))
+//         return;
+
+//     newTicket.model = ui->modelInput->text().trimmed();
+
+
+//     //Brand
+//     if (!validateField(ui->brandInput->text(),
+//                           "Brand is required.",
+//                           ui->brandInput))
+//         return;
+
+//     newTicket.brand = ui->brandInput->text().trimmed();
+
+
+//     //Description (optional)
+//     newTicket.description = ui->descriptionInput->toPlainText().trimmed();
+
+
+//     // Employee
+//     QVariant employeeData = ui->employeeListWidget-;
+//     if (!employeeData.isValid() || employeeData.toInt() <= 0)
+//     {
+//         QMessageBox::warning(this, "Validation Error",
+//                              "Please select an employee.");
+//         ui->employeeComboBox->setFocus();
+//         return;
+//     }
+
+//     newTicket.employeeId = employeeData.toInt();
+
+
+//     // Date
+//     QDate selectedDate = ui->dateEdit->date();
+//     if (!selectedDate.isValid())
+//     {
+//         QMessageBox::warning(this, "Validation Error",
+//                              "Please select a valid date.");
+//         ui->dateEdit->setFocus();
+//         return;
+//     }
+
+//     newTicket.date = selectedDate;
+
+
+//     // -------- Time Slots --------
+//     QList<int> selectedSlots = getSelectedTimeSlots(); // 你自己的函数
+//     if (selectedSlots.isEmpty())
+//     {
+//         QMessageBox::warning(this, "Validation Error",
+//                              "Please select at least one time slot.");
+//         return;
+//     }
+
+//     newTicket.timeSlots = selectedSlots;
+
+// }
 
 CreateTicketWidget::~CreateTicketWidget()
 {

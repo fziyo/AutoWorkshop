@@ -1,8 +1,8 @@
 #include "TicketsHomePage.h"
 #include "ui_TicketsHomePage.h"
-#include "domain/timeSlot/TimeSlotsProvider.h"
+#include "utils/TimeSlotsProvider.h"
 #include <QMessageBox>
-#include "ui/utils/TabsPages.h"
+#include "utils/TabsPages.h"
 
 TicketsHomePage::TicketsHomePage(TicketService* ticketService, EmployeeService* employeeService, EmployeeScheduleService* employeeScheduleService, QWidget* parent)
     : QWidget(parent)
@@ -24,13 +24,13 @@ TicketsHomePage::TicketsHomePage(TicketService* ticketService, EmployeeService* 
     ui->ticketsTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     // get all tickets
-    QList<Ticket> tickets = ticketService->getAllTickets();
+    QList<TicketDetailsDto> tickets = ticketService->getAllTickets();
     displayAllTickets(tickets);
     // show create ticket page
     connect(ui->createTicketButton, &QPushButton::clicked, this, &TicketsHomePage::onCreateClicked);
 }
 
-void TicketsHomePage::displayAllTickets(const QList<Ticket>& tickets )
+void TicketsHomePage::displayAllTickets(const QList<TicketDetailsDto>& tickets )
 {
     // tableWidget_emp in ui for displaying the data:
     ui->ticketsTable->clearContents();
@@ -40,31 +40,30 @@ void TicketsHomePage::displayAllTickets(const QList<Ticket>& tickets )
     const QStringList texts = {"Created", "In progress", "Done", "Closed"};
 
     int row = 0;
-    foreach (const Ticket &ticket, tickets) {
+    foreach (const TicketDetailsDto &ticket, tickets) {
         QComboBox* combobox = new QComboBox;
         combobox->addItems(texts);
-        combobox->setCurrentIndex(ticketStatusToInt(ticket.status));
+        combobox->setCurrentIndex(ticketStatusToInt(ticket.ticket.status));
 
-        ui->ticketsTable->setItem(row, 0, new QTableWidgetItem(QString::number(ticket.id)));
+        ui->ticketsTable->setItem(row, 0, new QTableWidgetItem(QString::number(ticket.ticket.id)));
         ui->ticketsTable->setCellWidget(row, 1, combobox);
-        ui->ticketsTable->setItem(row, 2, new QTableWidgetItem(ticket.resgisId));
-        ui->ticketsTable->setItem(row, 3, new QTableWidgetItem(ticket.customer));
-        ui->ticketsTable->setItem(row, 4, new QTableWidgetItem(ticket.date));
+        ui->ticketsTable->setItem(row, 2, new QTableWidgetItem(ticket.ticket.resgisId));
+        ui->ticketsTable->setItem(row, 3, new QTableWidgetItem(ticket.ticket.customer));
+        ui->ticketsTable->setItem(row, 4, new QTableWidgetItem(ticket.scheduleDate.toString("yyyy-MM-dd")));
 
         // manually change ticket status, update database
         connect(combobox, &QComboBox::currentIndexChanged, this, &TicketsHomePage::updateTicketStatusById);
 
         QStringList timeStr;
-        for(int i =0; i <5; ++i)
+        foreach (int slotIndex, ticket.slotIndexes)
         {
-            if (ticket.timeSlots[i] == 1)
-                timeStr.append(TimeSlotProvider::timeSlots().at(i).startTime.toString("hh:mm") + " - " + TimeSlotProvider::timeSlots().at(i).endTime.toString("hh:mm"));
+            timeStr.append(TimeSlotProvider::timeSlots().at(slotIndex).startTime.toString("hh:mm") + " - " + TimeSlotProvider::timeSlots().at(slotIndex).endTime.toString("hh:mm"));
         }
         QString timeString = timeStr.join(" ");
 
         ui->ticketsTable->setItem(row, 5, new QTableWidgetItem(timeString));
 
-        ui->ticketsTable->setItem(row, 6, new QTableWidgetItem(ticket.empNames.join(", ")));
+        ui->ticketsTable->setItem(row, 6, new QTableWidgetItem(ticket.employeeNames.join(", ")));
         row++;
     }
 }

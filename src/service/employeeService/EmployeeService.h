@@ -2,7 +2,7 @@
 #define EMPLOYEESERVICE_H
 #include "data/AutoWorkshopSql.h"
 #include "dtos/EmployeeDto.h"
-#include "domain/employee/Employee.h"
+#include "entity/Employee.h"
 
 class EmployeeService
 {

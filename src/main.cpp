@@ -1,5 +1,5 @@
 #include "ui/MainWindow.h"
-#include "logger/Log.h"
+#include "log/Log.h"
 #include <QApplication>
 #include <QDebug>
 #include <QStyleFactory>

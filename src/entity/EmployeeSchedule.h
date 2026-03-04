@@ -1,11 +1,12 @@
 #ifndef EMPLOYEESCHEDULE_H
 #define EMPLOYEESCHEDULE_H
+#include <QDate>
 struct EmployeeSchedule
 {
     int id;
     int empId;
     int ticketId;
-    QString appointDate;
-    QList<int> timeSlots;
+    QDate date;
+    int slotIndex;
 };
 #endif // EMPLOYEESCHEDULE_H

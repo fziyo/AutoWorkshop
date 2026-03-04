@@ -1,7 +1,7 @@
 #include "CreateAccountWidget.h"
 #include "ui_CreateAccountWidget.h"
 #include "service/authService/AuthService.h"
-#include "logger/Log.h"
+#include "log/Log.h"
 #include <QMessageBox>
 
 CreateAccountWidget::CreateAccountWidget(QWidget *parent)

@@ -1,5 +1,5 @@
 #include "AuthService.h"
-#include "app/AppContext.h"
+#include "context/AppContext.h"
 
 // AuthService::AuthService() {}
 LoginResult AuthService::login(const QString& username, const QString& password) const

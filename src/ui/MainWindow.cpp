@@ -2,12 +2,12 @@
 #include "ui_MainWindow.h"
 #include "ui/auth/login/LoginWidget.h"
 #include "ui/auth/signup/CreateAccountWidget.h"
-#include "app/AppContext.h"
+#include "context/AppContext.h"
 #include <QStackedLayout>
 #include <QDebug>
 #include <QMouseEvent>
-#include "logger/Log.h"
-#include "ui/utils/TabsPages.h"
+#include "log/Log.h"
+#include "utils/TabsPages.h"
 #include "ui/common/navigation/ILeaveGuard.h"
 
 MainWindow::MainWindow(QWidget *parent)

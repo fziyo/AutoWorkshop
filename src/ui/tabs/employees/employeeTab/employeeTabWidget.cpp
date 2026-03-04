@@ -1,7 +1,7 @@
 #include "EmployeeTabWidget.h"
 #include "ui_EmployeeTabWidget.h"
 #include "ui/common/addEmpDialog/AddEmpDialog.h"
-#include "logger/Log.h"
+#include "log/Log.h"
 #include <QDialog>
 
 EmployeeTabWidget::EmployeeTabWidget(EmployeeService* employeeService, QWidget *parent)

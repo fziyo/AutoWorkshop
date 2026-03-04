@@ -1,6 +1,6 @@
 #include "ScheduleTabWidget.h"
 #include "ui_ScheduleTabWidget.h"
-#include "app/AppContext.h"
+#include "context/AppContext.h"
 
 
 ScheduleTabWidget::ScheduleTabWidget(TicketService* ticketService, QWidget *parent)

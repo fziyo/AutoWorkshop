@@ -22,7 +22,9 @@ public:
     ~CreateTicketWidget();
     bool hasUnsavedChanges() const override;
     void clearState() override;
-    void onClickedCancel();
+    bool validateField(const QString& value, const QString& message, QWidget* focusWidget);
+    //void saveTicket();
+    void cancelCreateTicket();
 signals:
     void goToRootTab();
 

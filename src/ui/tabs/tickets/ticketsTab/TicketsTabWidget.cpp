@@ -1,8 +1,8 @@
 #include "TicketsTabWidget.h"
 #include "ui_TicketsTabWidget.h"
-#include "domain/timeSlot/TimeSlotsProvider.h"
+#include "utils/TimeSlotsProvider.h"
 #include <QMessageBox>
-#include "ui/utils/TabsPages.h"
+#include "utils/TabsPages.h"
 TicketsTabWidget::TicketsTabWidget(TicketService* ticketService, EmployeeService* employeeService, EmployeeScheduleService* employeeScheduleService, QWidget *parent)
     : BaseTab(parent)
     , ui(new Ui::TicketsTabWidget)

@@ -1,8 +1,8 @@
 #include "EmployeeScheduleService.h"
-#include "src/logger/Log.h"
+#include "log/Log.h"
 #include <QDateTime>
 #include <QDate>
-#include "src/domain/timeSlot/TimeSlotsProvider.h"
+#include "utils/TimeSlotsProvider.h"
 
 EmployeeScheduleService::EmployeeScheduleService(AutoWorkshopSql* db):m_db(db)
 {

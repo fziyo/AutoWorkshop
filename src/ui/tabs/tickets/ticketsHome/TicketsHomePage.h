@@ -17,7 +17,7 @@ class TicketsHomePage : public QWidget
 public:
     explicit TicketsHomePage(TicketService* ticketService, EmployeeService* employeeService, EmployeeScheduleService* employeeScheduleService, QWidget *parent = nullptr);
     ~TicketsHomePage();
-    void displayAllTickets(const QList<Ticket>& tickets );
+    void displayAllTickets(const QList<TicketDetailsDto>& tickets );
     void updateTicketStatusById(int newStatus);
 signals:
     void onCreateClicked();

@@ -2,7 +2,7 @@
 #define AUTHSERVICE_H
 
 #include <QString>
-#include "app/AppContext.h"
+#include "context/AppContext.h"
 #include "service/authService/AuthTypes.h"
 
 // struct AuthResult

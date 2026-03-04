@@ -6,8 +6,8 @@
 #include <QSqlQuery>
 #include <QDebug>
 #include <QDateTime>
-#include "domain/ticket/TicketStatus.h"
-#include "logger/Log.h"
+#include "utils/TicketStatus.h"
+#include "log/Log.h"
 
 AutoWorkshopSql::AutoWorkshopSql()
 {
@@ -111,42 +111,35 @@ bool AutoWorkshopSql::initSchema()
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "name TEXT NOT NULL, "
                     "tel TEXT, "
-                    "create_at TEXT);", "employees"))
+                    "create_at DEFAULT CURRENT_TIMESTAMP);", "employees"))
     {
         return false;
     }
 
-    // emp_schedule
-    if(!execOrFail("CREATE TABLE IF NOT EXISTS emp_schedule ("
+    // emp_schedules
+    if(!execOrFail("CREATE TABLE IF NOT EXISTS emp_schedules ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                     "emp_id INTEGER NOT NULL, "
                     "ticket_id INTEGER NOT NULL, "
-                    "schedule_date TEXT,"
-                    "slot0 INTEGER, "
-                    "slot1 INTEGER, "
-                    "slot2 INTEGER, "
-                    "slot3 INTEGER, "
-                    "slot4 INTEGER);", "emp_schedule"))
+                    "schedule_date TEXT NOT NULL,"
+                    "slot_index INTEGER NOT NULL,"
+                    "FOREIGN KEY(emp_id) REFERENCES employees(id) ON DELETE CASCADE,"
+                    "FOREIGN KEY(ticket_id) REFERENCES tickets(id) ON DELETE CASCADE);", "emp_schedules"))
     {
         return false;
     }
 
-    // tickets table
+    // tickets
     if(!execOrFail("CREATE TABLE IF NOT EXISTS tickets ("
                     "id integer PRIMARY KEY AUTOINCREMENT, "
-                    "customer TEXT, "
-                    "brand text, "
-                    "model text, "
-                    "regis_id text, "
-                    "schedule_date text, "
-                    "slot0 int, "
-                    "slot1 int, "
-                    "slot2 int, "
-                    "slot3 int, "
-                    "slot4 int, "
-                    "description text, "
-                    "status INTEGER, "
-                    "total_to_pay REAL);", "tickets"))
+                    "customer TEXT NOT NULL, "
+                    "brand TEXT NOT NULL, "
+                    "model TEXT NOT NULL, "
+                    "regis_id TEXT, "
+                    "description TEXT, "
+                    "status INTEGER NOT NULL, "
+                    "total_to_pay REAL DEFAULT 0,"
+                    "created_at TEXT DEFAULT CURRENT_TIMESTAMP);", "tickets"))
     {
         return false;
     }
@@ -157,19 +150,21 @@ bool AutoWorkshopSql::initSchema()
                     "ticket_id INTEGER NOT NULL, "
                     "part_name TEXT, "
                     "amount REAL, "
-                    "unit_price REAL);", "ticket_parts"))
+                    "unit_price REAL,"
+                    "FOREIGN KEY(ticket_id) REFERENCES tickets(id) ON DELETE CASCADE);", "ticket_parts"))
     {
         return false;
     }
 
-    // ticket_estimate
-    if(!execOrFail("CREATE TABLE IF NOT EXISTS ticket_estimate ("
+    // ticket_estimates
+    if(!execOrFail("CREATE TABLE IF NOT EXISTS ticket_estimates ("
                     "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                     "ticket_id INTEGER NOT NULL, "
                     "description TEXT, "
-                    "expected_cost TEXT, "
-                    "accepted INTEGER,"
-                    "created_at TEXT);", "ticket_estimate"))
+                    "expected_cost REAL, "
+                    "accepted INTEGER DEFAULT 0,"
+                    "created_at TEXT DEFAULT CURRENT_TIMESTAMP,"
+                    "FOREIGN KEY(ticket_id) REFERENCES tickets(id) ON DELETE CASCADE);", "ticket_estimates"))
     {
         return false;
     }
@@ -274,117 +269,181 @@ bool AutoWorkshopSql::createAccount(const QString& username, const QString& pass
     return true;
 }
 
-Ticket AutoWorkshopSql::getTicket(int ticketId)
+TicketDetailsDto AutoWorkshopSql::getTicket(int ticketId)
 {
-    Ticket ticket;
+    TicketDetailsDto dto;
 
-    auto query = createQuery();
-    query.prepare("select * from tickets where id =:ticketId");
-    query.bindValue(":ticketId", ticketId);
+    if (!db.isOpen()) {
+        LOG_ERROR(logDb) << "getTicket failed: DB not open";
+        return dto;
+    }
+
+    QSqlQuery query = createQuery();
+
+    query.prepare(R"(
+        SELECT t.id,
+               t.customer,
+               t.brand,
+               t.model,
+               t.regis_id,
+               t.description,
+               t.status,
+               t.total_to_pay,
+               t.created_at,
+               s.schedule_date,
+               s.slot_index,
+               e.name AS employee_name
+        FROM tickets t
+        LEFT JOIN emp_schedule s ON t.id = s.ticket_id
+        LEFT JOIN employees e ON s.emp_id = e.id
+        WHERE t.id = ?
+    )");
+
+    query.addBindValue(ticketId);
 
     if (!query.exec()) {
-        LOG_ERROR(logDb) << "getTicket query failed:" << query.lastError().text();
-        return ticket;
+        LOG_ERROR(logDb) << "getTicket query failed:"
+                         << query.lastError().text();
+        return dto;
     }
 
-    while (query.next()) {
-        ticket.id= query.value("id").toInt();
-        ticket.customer = query.value("customer").toString();
-        ticket.brand = query.value("brand").toString();
-        ticket.model = query.value("model").toString();
-        ticket.resgisId = query.value("regis_id").toString();
+    while (query.next())
+    {
+        if (dto.ticket.id == 0)
+        {
+            dto.ticket.id = query.value("id").toInt();
+            dto.ticket.customer = query.value("customer").toString();
+            dto.ticket.brand = query.value("brand").toString();
+            dto.ticket.model = query.value("model").toString();
+            dto.ticket.resgisId = query.value("regis_id").toString();
+            dto.ticket.description = query.value("description").toString();
+            dto.ticket.status =
+                intToTicketStatus(query.value("status").toInt());
+            dto.ticket.totalToPay =
+                query.value("total_to_pay").toDouble();
+            dto.ticket.createdAt =
+                query.value("created_at").toString();
+        }
 
-        ticket.empNames = query.value("emp_name").toString().split(", ");
-        ticket.date = query.value("date").toString();
-        ticket.timeSlots.append(query.value("slot0").toInt());
-        ticket.timeSlots.append(query.value("slot1").toInt());
-        ticket.timeSlots.append(query.value("slot2").toInt());
-        ticket.timeSlots.append(query.value("slot3").toInt());
-        ticket.timeSlots.append(query.value("slot4").toInt());
-        ticket.description = query.value("description").toString();
-        ticket.status = intToTicketStatus(query.value("status").toInt());
+        if (!query.value("schedule_date").isNull())
+        {
+            QDate date = QDate::fromString(query.value("schedule_date").toString(), "yyyy-MM-dd");
+
+            dto.scheduleDate = date;
+
+            dto.slotIndexes.append(query.value("slot_index").toInt());
+        }
+
+        if (!query.value("employee_name").isNull())
+        {
+            dto.employeeNames.append(
+                query.value("employee_name").toString());
+        }
     }
-    return ticket;
+
+    return dto;
 }
 
-QList<Ticket> AutoWorkshopSql::filterTicketById(const QString &input)
-{
-    QList<Ticket> tickets;
+// QList<Ticket> AutoWorkshopSql::filterTicketById(const QString &input)
+// {
+//     QList<Ticket> tickets;
 
+//     auto query = createQuery();
+//     query.prepare("select * from tickets where cast(id as text) like :input");
+//     query.bindValue(":input", "%" + input + "%");
+
+//     if (!query.exec()) {
+//         LOG_ERROR(logDb) << "filterTicketById query failed:" << query.lastError().text();
+//         return tickets; // Return an empty list if the query fails
+//     }
+
+//     while (query.next()) {
+//         Ticket ticket;
+
+//         ticket.id= query.value("id").toInt();
+//         ticket.customer = query.value("customer").toString();
+//         ticket.brand = query.value("brand").toString();
+//         ticket.model = query.value("model").toString();
+//         ticket.resgisId = query.value("regis_id").toString();
+
+//         ticket.empNames = query.value("emp_name").toString().split(", ");
+//         ticket.date = query.value("date").toString();
+//         ticket.timeSlots.append(query.value("slot0").toInt());
+//         ticket.timeSlots.append(query.value("slot1").toInt());
+//         ticket.timeSlots.append(query.value("slot2").toInt());
+//         ticket.timeSlots.append(query.value("slot3").toInt());
+//         ticket.timeSlots.append(query.value("slot4").toInt());
+//         ticket.description = query.value("description").toString();
+//         ticket.status = intToTicketStatus(query.value("status").toInt());
+
+//         tickets.append(ticket);
+//     }
+
+//     return tickets;
+// }
+
+QList<TicketDetailsDto> AutoWorkshopSql::getWeeklyTickets(const QDate& startDate, const QDate& endDate)
+{
     auto query = createQuery();
-    query.prepare("select * from tickets where cast(id as text) like :input");
-    query.bindValue(":input", "%" + input + "%");
+    query.prepare(R"(
+        SELECT t.id,
+               t.customer,
+               t.brand,
+               t.model,
+               t.regis_id,
+               t.description,
+               t.status,
+               t.total_to_pay,
+               t.created_at,
+               s.schedule_date,
+               s.slot_index
+        FROM tickets t
+        JOIN emp_schedule s ON t.id = s.ticket_id
+        WHERE s.schedule_date >= ?
+          AND s.schedule_date <= ?
+        ORDER BY s.schedule_date ASC
+    )");
+    query.addBindValue(startDate.toString("yyyy-MM-dd"));
+    query.addBindValue(endDate.toString("yyyy-MM-dd"));
+    QList<TicketDetailsDto> ticketDetailsDtos;
 
     if (!query.exec()) {
-        LOG_ERROR(logDb) << "filterTicketById query failed:" << query.lastError().text();
-        return tickets; // Return an empty list if the query fails
-    }
-
-    while (query.next()) {
-        Ticket ticket;
-
-        ticket.id= query.value("id").toInt();
-        ticket.customer = query.value("customer").toString();
-        ticket.brand = query.value("brand").toString();
-        ticket.model = query.value("model").toString();
-        ticket.resgisId = query.value("regis_id").toString();
-
-        ticket.empNames = query.value("emp_name").toString().split(", ");
-        ticket.date = query.value("date").toString();
-        ticket.timeSlots.append(query.value("slot0").toInt());
-        ticket.timeSlots.append(query.value("slot1").toInt());
-        ticket.timeSlots.append(query.value("slot2").toInt());
-        ticket.timeSlots.append(query.value("slot3").toInt());
-        ticket.timeSlots.append(query.value("slot4").toInt());
-        ticket.description = query.value("description").toString();
-        ticket.status = intToTicketStatus(query.value("status").toInt());
-
-        tickets.append(ticket);
-    }
-
-    return tickets;
-}
-
-QList<Ticket> AutoWorkshopSql::getWeeklyTickets(const QDate& startDate, const QDate& endDate)
-{
-    auto query = createQuery();
-    QString queryString = QString("select * from tickets where date >= '%1' and date <= '%2' order by date asc")
-                              .arg(startDate.toString("yyyy-MM-dd"))
-                              .arg(endDate.toString("yyyy-MM-dd"));
-    QList<Ticket> tickets;
-    // Execute the query
-    if (!query.exec(queryString)) {
         LOG_ERROR(logDb) << "getWeeklyTickets query error:" << query.lastError();
-        return tickets;
+        return ticketDetailsDtos;
     }
-
-    // Process the results
+    QMap<int, TicketDetailsDto> ticketMap;
     while (query.next()) {
-        Ticket ticket;
-        // Assuming Ticket is a struct or class you've defined, and you map the query result to it
-        ticket.id = query.value("id").toInt();
-        ticket.status = intToTicketStatus(query.value("status").toInt());
-        ticket.empNames.append(query.value("emp_name").toString());
+        int ticketId = query.value("id").toInt();
 
-        ticket.date = query.value("date").toString();
-        ticket.timeSlots.append(query.value("slot0").toInt());
-        ticket.timeSlots.append(query.value("slot1").toInt());
-        ticket.timeSlots.append(query.value("slot2").toInt());
-        ticket.timeSlots.append(query.value("slot3").toInt());
-        ticket.timeSlots.append(query.value("slot4").toInt());
+        if (!ticketMap.contains(ticketId))
+        {
+            TicketDetailsDto dto;
+            dto.ticket.id = ticketId;
+            dto.ticket.customer = query.value("customer").toString();
+            dto.ticket.brand = query.value("brand").toString();
+            dto.ticket.model = query.value("model").toString();
+            dto.ticket.resgisId = query.value("regis_id").toString();
+            dto.ticket.description = query.value("description").toString();
+            dto.ticket.status = intToTicketStatus(query.value("status").toInt());
+            dto.ticket.totalToPay = query.value("total_to_pay").toDouble();
+            dto.ticket.createdAt = query.value("created_at").toString();
 
-        tickets.append(ticket);
+            dto.scheduleDate = QDate::fromString(query.value("schedule_date").toString(), "yyyy-MM-dd");
+
+            ticketMap.insert(ticketId, dto);
+        }
+        ticketMap[ticketId].slotIndexes.append(query.value("slot_index").toInt());
     }
-
-    return tickets;
+    ticketDetailsDtos = ticketMap.values();
+    return ticketDetailsDtos;
 }
 
-bool AutoWorkshopSql::updateTicketStatus(const Ticket& ticket, TicketStatus newStatus)
+bool AutoWorkshopSql::updateTicketStatus(const TicketDetailsDto& ticketDto, TicketStatus newStatus)
 {
     auto query = createQuery();
     QString queryString = QString("update tickets set status = %1 where id = %2")
                               .arg(ticketStatusToInt(newStatus))
-                              .arg(ticket.id);
+                              .arg(ticketDto.ticket.id);
 
     if (!query.exec(queryString))
     {
@@ -415,52 +474,92 @@ QString AutoWorkshopSql::getLastDbError() const
     return lastDbError;
 }
 
-QList<Ticket> AutoWorkshopSql::getAllTickets()
+QList<TicketDetailsDto> AutoWorkshopSql::getAllTicketDetails()
 {
-    QList<Ticket> tickets;
+    QList<TicketDetailsDto> results;
 
     if (!db.isOpen()) {
-        LOG_ERROR(logDb) << "getAllTickets failed: DB not open";
-        return tickets;
+        LOG_ERROR(logDb) << "getAllTicketDetails failed: DB not open";
+        return results;
     }
 
-    auto query = createQuery();
+    QSqlQuery query = createQuery();
 
-    LOG_DEBUG(logDb) << "Executing getAllTickets query";
+    query.prepare(R"(
+        SELECT t.id,
+               t.customer,
+               t.brand,
+               t.model,
+               t.regis_id,
+               t.description,
+               t.status,
+               t.total_to_pay,
+               t.created_at,
+               s.schedule_date,
+               s.slot_index,
+               e.name AS employee_name
+        FROM tickets t
+        LEFT JOIN emp_schedule s ON t.id = s.ticket_id
+        LEFT JOIN employees e ON s.emp_id = e.id
+        ORDER BY t.id
+    )");
 
-    if (!query.exec("SELECT * FROM tickets")) {
-        lastDbError = query.lastError().text();
-        LOG_ERROR(logDb)
-            << "getAllTickets SQL failed"
-            << lastDbError;
-        return tickets;
+    if (!query.exec()) {
+        LOG_ERROR(logDb) << "getAllTicketDetails SQL failed"
+                         << query.lastError();
+        return results;
     }
-    while (query.next()) {
-        qDebug() << "DB file:" << query.value(2).toString();
-        Ticket ticket;
-        ticket.id= query.value("id").toInt();
-        ticket.customer = query.value("customer").toString();
-        ticket.brand = query.value("brand").toString();
-        ticket.model = query.value("model").toString();
-        ticket.resgisId = query.value("regis_id").toString();
-        //ticket.empNames
-        ticket.empNames = query.value("emp_name").toString().split(", ");
-        ticket.date = query.value("date").toString();
-        ticket.timeSlots.append(query.value("slot0").toInt());
-        ticket.timeSlots.append(query.value("slot1").toInt());
-        ticket.timeSlots.append(query.value("slot2").toInt());
-        ticket.timeSlots.append(query.value("slot3").toInt());
-        ticket.timeSlots.append(query.value("slot4").toInt());
-        ticket.description = query.value("description").toString();
-        qDebug() << "Ticket status: " + query.value("status").toString();
-        ticket.status = intToTicketStatus(query.value("status").toInt());
 
-        tickets.append(ticket);
+    QMap<int, TicketDetailsDto> ticketMap;
+    while (query.next())
+    {
+        int ticketId = query.value("id").toInt();
+
+        if (!ticketMap.contains(ticketId))
+        {
+            TicketDetailsDto dto;
+
+            dto.ticket.id = ticketId;
+            dto.ticket.customer = query.value("customer").toString();
+            dto.ticket.brand = query.value("brand").toString();
+            dto.ticket.model = query.value("model").toString();
+            dto.ticket.resgisId = query.value("regis_id").toString();
+            dto.ticket.description = query.value("description").toString();
+            dto.ticket.status =
+                intToTicketStatus(query.value("status").toInt());
+            dto.ticket.totalToPay =
+                query.value("total_to_pay").toDouble();
+            dto.ticket.createdAt =
+                query.value("created_at").toString();
+
+            ticketMap.insert(ticketId, dto);
+        }
+
+        if (!query.value("schedule_date").isNull())
+        {
+            ticketMap[ticketId].scheduleDate =
+                QDate::fromString(
+                    query.value("schedule_date").toString(),
+                    "yyyy-MM-dd");
+
+            ticketMap[ticketId].slotIndexes.append(
+                query.value("slot_index").toInt());
+        }
+
+        if (!query.value("employee_name").isNull())
+        {
+            ticketMap[ticketId].employeeNames.append(
+                query.value("employee_name").toString());
+        }
     }
+
+    results = ticketMap.values();
+
     LOG_DEBUG(logDb)
-        << "getAllTickets success"
-        << "count=" << tickets.size();
-    return tickets;
+        << "getAllTicketDetails success count="
+        << results.size();
+
+    return results;
 }
 
 // emp

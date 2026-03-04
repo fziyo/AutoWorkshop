@@ -1,6 +1,6 @@
 #include "TicketService.h"
-#include "domain/timeSlot/TimeSlotsProvider.h"
-#include "logger/Log.h"
+#include "utils/TimeSlotsProvider.h"
+#include "log/Log.h"
 #include <QDebug>
 TicketService::TicketService(AutoWorkshopSql* db):m_db(db)
 {
@@ -13,7 +13,7 @@ TicketService::TicketService(AutoWorkshopSql* db):m_db(db)
  * @param endDate
  * @return QList<Ticket> a list of all tickets in the weedays, empty list if none
  */
-QList<Ticket> TicketService::getWeeklyTickets(const QDate& startDate, const QDate& endDate)
+QList<TicketDetailsDto> TicketService::getWeeklyTickets(const QDate& startDate, const QDate& endDate)
 {
     qDebug() << "m_db pointer:" << m_db;
     return m_db->getWeeklyTickets(startDate, endDate);
@@ -26,21 +26,21 @@ QList<Ticket> TicketService::getWeeklyTickets(const QDate& startDate, const QDat
  * @param currentTime
  * @return TicketStatus  the correct status
  */
-TicketStatus TicketService::calculateStatus(const Ticket& ticket, const QDate& currentDate, const QTime& currentTime)
+TicketStatus TicketService::calculateStatus(const TicketDetailsDto& ticket, const QDate& currentDate, const QTime& currentTime)
 {
-    if(QDate::fromString(ticket.date, "yyyy-MM-dd") < currentDate.addDays(-7))
+    if(ticket.scheduleDate < currentDate.addDays(-7))
     {   // ticket one week ago - closed
         return TicketStatus::Closed;
     }
 
-    if (QDate::fromString(ticket.date, "yyyy-MM-dd") > currentDate)
+    if (ticket.scheduleDate > currentDate)
     {
         // future work - created
         return TicketStatus::Created;
 
     }
 
-    if (QDate::fromString(ticket.date, "yyyy-MM-dd") == currentDate)
+    if (ticket.scheduleDate == currentDate)
     {   // today's work
 
         auto [start, end] = calculateTimeRange(ticket);
@@ -64,15 +64,15 @@ TicketStatus TicketService::calculateStatus(const Ticket& ticket, const QDate& c
  * @param ticket
  * @return Ticket with updated status
  */
-Ticket TicketService::refreshStatus(const Ticket& ticket)
+TicketDetailsDto TicketService::refreshStatus(const TicketDetailsDto& ticket)
 {
     TicketStatus newStatus = calculateStatus(ticket, QDate::currentDate(), QTime::currentTime());
 
-    if (newStatus != ticket.status) {
+    if (newStatus != ticket.ticket.status) {
         m_db->updateTicketStatus(ticket, newStatus);
     }
 
-    return m_db->getTicket(ticket.id);
+    return m_db->getTicket(ticket.ticket.id);
 }
 
 /**
@@ -80,21 +80,20 @@ Ticket TicketService::refreshStatus(const Ticket& ticket)
  * @param ticket
  * @return QPair<QTime, QTime>  scheduled starting time and ending time, a tiket with multiple slots considered
  */
-QPair<QTime, QTime> TicketService::calculateTimeRange(const Ticket& ticket)
+QPair<QTime, QTime>
+TicketService::calculateTimeRange(const TicketDetailsDto& ticket)
 {
+    if (ticket.slotIndexes.isEmpty())
+        return {};
+
+    QList<int> ticketSlots = ticket.slotIndexes;
+    std::sort(ticketSlots.begin(), ticketSlots.end());
+
     const auto& allTimeSlots = TimeSlotProvider::timeSlots();
-    QTime endTime, startTime;
-    for (auto& timeSlot : allTimeSlots)
-    {
-        if (ticket.timeSlots[timeSlot.index] == 1)
-        {
-            if (!startTime.isValid())
-            {
-                startTime = timeSlot.startTime;
-            }
-            endTime = timeSlot.endTime;
-        }
-    }
+
+    QTime startTime = allTimeSlots[ticketSlots.first()].startTime;
+    QTime endTime   = allTimeSlots[ticketSlots.last()].endTime;
+
     return {startTime, endTime};
 }
 
@@ -104,7 +103,7 @@ QPair<QTime, QTime> TicketService::calculateTimeRange(const Ticket& ticket)
  * @param newStatus
  * @return bool
  */
-bool TicketService::updateTicketStatus(const Ticket& ticket, TicketStatus newStatus)
+bool TicketService::updateTicketStatus(const TicketDetailsDto& ticket, TicketStatus newStatus)
 {
     return m_db->updateTicketStatus(ticket, newStatus);
 }
@@ -116,9 +115,9 @@ bool TicketService::updateTicketStatusById(const int ticketId, const int newStat
 
 
 
-QList<Ticket> TicketService::getAllTickets()
+QList<TicketDetailsDto> TicketService::getAllTickets()
 {
-    return m_db->getAllTickets();
+    return m_db->getAllTicketDetails();
 }
 
 void TicketService::setError(QString err)

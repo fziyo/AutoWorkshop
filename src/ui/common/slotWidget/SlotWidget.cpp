@@ -1,6 +1,6 @@
 #include "SlotWidget.h"
 #include "ui_SlotWidget.h"
-#include "logger/Log.h"
+#include "log/Log.h"
 #include <QLayout>
 #include <QMouseEvent>
 #include <QDrag>
@@ -20,21 +20,21 @@ SlotWidget::SlotWidget(QWidget *parent)
     setLayout(layout);
 }
 
-void SlotWidget::setTicketInfo(const Ticket& ticket)
+void SlotWidget::setTicketInfo(const TicketDetailsDto& ticket)
 {   // p: 3d348b orange: f18701  red: f35b04 blue: 7678ed
     QString displayText = QString("Ticket ID: %1\nStatus: %2\nTechnician(s): %3")
-                              .arg(ticket.id)
-                              .arg(ticketStatusToString(ticket.status))
-                              .arg(ticket.empNames.join(", "));
+                              .arg(ticket.ticket.id)
+                              .arg(ticketStatusToString(ticket.ticket.status))
+                              .arg(ticket.employeeNames.join(", "));
     infoLabel->setText(displayText);
     // add different background color according to status
-    if (ticket.status == TicketStatus::Created)
+    if (ticket.ticket.status == TicketStatus::Created)
         infoLabel->setStyleSheet("QLabel { background-color : #F9CBCB; border-radius: 5;}");
-    if (ticket.status == TicketStatus::InProgress)
+    if (ticket.ticket.status == TicketStatus::InProgress)
         infoLabel->setStyleSheet("QLabel { background-color : #BAE2D4; border-radius: 5; }");
-    if (ticket.status == TicketStatus::Done)
+    if (ticket.ticket.status == TicketStatus::Done)
         infoLabel->setStyleSheet("QLabel { background-color : #7678ed; border-radius: 5; }");
-    if (ticket.status == TicketStatus::Closed)
+    if (ticket.ticket.status == TicketStatus::Closed)
         infoLabel->setStyleSheet("QLabel { background-color : #E5D3F1;  border-radius: 5;}");
 }
 
@@ -62,11 +62,12 @@ void SlotWidget::mouseMoveEvent(QMouseEvent *event) {
     QDataStream dataStream(&encodeData, QIODevice::WriteOnly);
     QPoint globalStartPos = this->mapToGlobal(dragStartPosition);
 
-    dataStream <<globalStartPos<< ticketData.id << ticketData.date << ticketData.timeSlots;
+    dataStream <<globalStartPos<< ticketData.id;
+    // << ticketData.brand << ticketData.timeSlots;
     mimeData->setData("application/x-ticket", encodeData);
     qDebug()<<"SlotWidget::mouseMoveEvent" << dragStartPosition;
 
-    qDebug()<<"SlotWidget::mouseMoveEvent"<< ticketData.id << ticketData.date << ticketData.timeSlots;
+    //qDebug()<<"SlotWidget::mouseMoveEvent"<< ticketData.id << ticketData.date << ticketData.timeSlots;
     drag->setMimeData(mimeData);
     QPixmap pixmap = this->grab(); // Optionally take a screenshot of the widget for the drag visual
     drag->setPixmap(pixmap);

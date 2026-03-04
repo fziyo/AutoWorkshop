@@ -1,7 +1,7 @@
 #ifndef EMPLOYEESCHEDULESERVICE_H
 #define EMPLOYEESCHEDULESERVICE_H
 #include "data/AutoWorkshopSql.h"
-#include "domain/schedule/EmpAvailability.h"
+#include "utils/EmpAvailability.h"
 
 class EmployeeScheduleService
 {

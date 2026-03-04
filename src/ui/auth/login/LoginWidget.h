@@ -2,7 +2,7 @@
 #define LOGINWIDGET_H
 
 #include <QWidget>
-#include "app/AppContext.h"
+#include "context/AppContext.h"
 #include "service/authService/AuthService.h"
 
 namespace Ui {

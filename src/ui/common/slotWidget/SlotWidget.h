@@ -3,8 +3,8 @@
 
 #include <QWidget>
 #include <QLabel>
-#include "domain/ticket/Ticket.h"
-
+#include "entity/Ticket.h"
+#include "dtos/TicketDetailsDto.h"
 namespace Ui {
 class SlotWidget;
 }
@@ -20,7 +20,7 @@ public:
     //static QPoint dragStartPosition;
 
 public:
-    void setTicketInfo(const Ticket &);
+    void setTicketInfo(const TicketDetailsDto &);
 
     QString extractStatus(const QString &info);
 

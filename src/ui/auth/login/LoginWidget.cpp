@@ -1,6 +1,6 @@
 #include "LoginWidget.h"
 #include "ui_LoginWidget.h"
-#include "logger/Log.h"
+#include "log/Log.h"
 #include <QDebug>
 
 LoginWidget::LoginWidget(QWidget *parent)

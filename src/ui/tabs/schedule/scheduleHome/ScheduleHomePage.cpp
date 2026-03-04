@@ -1,7 +1,7 @@
 #include "ScheduleHomePage.h"
 #include "ui_ScheduleHomePage.h"
-#include "logger/Log.h"
-#include "domain/ticket/Ticket.h"
+#include "log/Log.h"
+#include "entity/Ticket.h"
 #include "ui/common/slotWidget/SlotWidget.h"
 
 ScheduleHomePage::ScheduleHomePage(TicketService* ticketService, QWidget *parent)
@@ -44,37 +44,31 @@ void ScheduleHomePage::loadWeek(const QDate& currentWeekStart)
                                .arg(currentWeekEnd.toString("MMM dd, yyyy")));
     ui->scheduleTable->clearContents();
 
-    QList<Ticket> tickets = ticketService->getWeeklyTickets(currentWeekStart, currentWeekEnd);
+    QList<TicketDetailsDto> tickets = ticketService->getWeeklyTickets(currentWeekStart, currentWeekEnd);
 
     //put ticket widget on table cell
-    foreach (const Ticket& ticket, tickets) {
+    foreach (const TicketDetailsDto& ticket, tickets) {
 
         // Convert date and time to row and column indices
-        qCDebug(logUi) <<"date: " << ticket.date;
-        QDate date = QDate::fromString(ticket.date, "yyyy-MM-dd");
-        int col = date.dayOfWeek()-1; // monday 1
-        qCDebug(logUi) <<"day of week" <<col;
+        LOG_DEBUG(logUi) <<"date: " << ticket.scheduleDate;
+        int col = ticket.scheduleDate.dayOfWeek()-1; // monday 1
+        LOG_DEBUG(logUi) <<"day of week" <<col;
 
-        Ticket updatedTicket = ticketService->refreshStatus(ticket);
-        for (int i = 0; i < 5; ++i)
+        TicketDetailsDto updatedTicket = ticketService->refreshStatus(ticket);
+        foreach (int slotIndex, updatedTicket.slotIndexes)
         {
-            if (updatedTicket.timeSlots[i] == 1)
-            {
-                int row = i;
-                SlotWidget* slotInfo = new SlotWidget();
-                // make slot widget
-                slotInfo->setTicketInfo(updatedTicket);
-                // check if there already has a ticket widget
-                QWidget* existingWidget = ui->scheduleTable->cellWidget(row*2, col);
-                qCInfo(logUi)<<"set ticket slot widget";
-                if (existingWidget)
-                    // put to next
-                    ui->scheduleTable->setCellWidget(row*2+1, col, slotInfo);
-                else
-                {   // put
-                    ui->scheduleTable->setCellWidget(row*2, col, slotInfo);
-
-                }
+            int row = slotIndex;
+            SlotWidget* slotInfo = new SlotWidget();
+            slotInfo->setTicketInfo(updatedTicket);
+            // check if there already has a ticket widget
+            QWidget* existingWidget = ui->scheduleTable->cellWidget(row*2, col);
+            qCInfo(logUi)<<"set ticket slot widget";
+            if (existingWidget)
+                // put to next
+                ui->scheduleTable->setCellWidget(row*2+1, col, slotInfo);
+            else
+            {   // put
+                ui->scheduleTable->setCellWidget(row*2, col, slotInfo);
 
             }
         }
