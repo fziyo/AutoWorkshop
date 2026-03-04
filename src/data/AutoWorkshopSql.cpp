@@ -398,7 +398,7 @@ QList<TicketDetailsDto> AutoWorkshopSql::getWeeklyTickets(const QDate& startDate
                s.schedule_date,
                s.slot_index
         FROM tickets t
-        JOIN emp_schedule s ON t.id = s.ticket_id
+        JOIN emp_schedules s ON t.id = s.ticket_id
         WHERE s.schedule_date >= ?
           AND s.schedule_date <= ?
         ORDER BY s.schedule_date ASC
@@ -499,14 +499,15 @@ QList<TicketDetailsDto> AutoWorkshopSql::getAllTicketDetails()
                s.slot_index,
                e.name AS employee_name
         FROM tickets t
-        LEFT JOIN emp_schedule s ON t.id = s.ticket_id
+        LEFT JOIN emp_schedules s ON t.id = s.ticket_id
         LEFT JOIN employees e ON s.emp_id = e.id
         ORDER BY t.id
     )");
+    LOG_DEBUG(logDb) << "Executing query:" << query.lastQuery();
 
     if (!query.exec()) {
         LOG_ERROR(logDb) << "getAllTicketDetails SQL failed"
-                         << query.lastError();
+                         << query.lastError().text();
         return results;
     }
 
