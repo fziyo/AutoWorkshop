@@ -43,26 +43,26 @@ void ScheduleHomePage::loadWeek(const QDate& currentWeekStart)
                                .arg(currentWeekStart.toString("MMM dd"))
                                .arg(currentWeekEnd.toString("MMM dd, yyyy")));
     ui->scheduleTable->clearContents();
-
     QList<TicketDetailsDto> tickets = ticketService->getWeeklyTickets(currentWeekStart, currentWeekEnd);
-
+    LOG_INFO(logUi) << "tickets count =" << tickets.size();
     //put ticket widget on table cell
     foreach (const TicketDetailsDto& ticket, tickets) {
 
         // Convert date and time to row and column indices
-        LOG_DEBUG(logUi) <<"date: " << ticket.scheduleDate;
+        LOG_INFO(logUi) <<"date: " << ticket.scheduleDate;
         int col = ticket.scheduleDate.dayOfWeek()-1; // monday 1
-        LOG_DEBUG(logUi) <<"day of week" <<col;
+        LOG_INFO(logUi) <<"day of week" <<col;
 
         TicketDetailsDto updatedTicket = ticketService->refreshStatus(ticket);
         foreach (int slotIndex, updatedTicket.slotIndexes)
         {
             int row = slotIndex;
+            LOG_INFO(logUi) <<"slotwidget: row" <<row;
             SlotWidget* slotInfo = new SlotWidget();
             slotInfo->setTicketInfo(updatedTicket);
             // check if there already has a ticket widget
             QWidget* existingWidget = ui->scheduleTable->cellWidget(row*2, col);
-            qCInfo(logUi)<<"set ticket slot widget";
+            LOG_INFO(logUi)<<"set ticket slot widget";
             if (existingWidget)
                 // put to next
                 ui->scheduleTable->setCellWidget(row*2+1, col, slotInfo);

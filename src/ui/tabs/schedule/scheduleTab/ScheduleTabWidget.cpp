@@ -10,7 +10,8 @@ ScheduleTabWidget::ScheduleTabWidget(TicketService* ticketService, QWidget *pare
     ui->setupUi(this);
     scheduleHomePage = new ScheduleHomePage(ticketService);
     getStack()->addWidget(scheduleHomePage);
-    getStack()->setCurrentIndex(0);
+    //getStack()->setCurrentIndex(0);
+    getStack()->setCurrentWidget(scheduleHomePage);
 }
 
 

@@ -15,7 +15,6 @@ TicketService::TicketService(AutoWorkshopSql* db):m_db(db)
  */
 QList<TicketDetailsDto> TicketService::getWeeklyTickets(const QDate& startDate, const QDate& endDate)
 {
-    qDebug() << "m_db pointer:" << m_db;
     return m_db->getWeeklyTickets(startDate, endDate);
 }
 
