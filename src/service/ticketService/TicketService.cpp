@@ -66,12 +66,15 @@ TicketStatus TicketService::calculateStatus(const TicketDetailsDto& ticket, cons
 TicketDetailsDto TicketService::refreshStatus(const TicketDetailsDto& ticket)
 {
     TicketStatus newStatus = calculateStatus(ticket, QDate::currentDate(), QTime::currentTime());
-
+    LOG_DEBUG(logService) << "refreshStatus：：newStatus: " << ticketStatusToString(newStatus);
     if (newStatus != ticket.ticket.status) {
-        m_db->updateTicketStatus(ticket, newStatus);
+        LOG_DEBUG(logService) << "database update ticket status: " << ticketStatusToString(newStatus);
+        bool updateRes = m_db->updateTicketStatus(ticket, newStatus);
+        LOG_DEBUG(logService) << "database update ticket status result: " << updateRes;
+        return m_db->getTicket(ticket.ticket.id);
     }
-
-    return m_db->getTicket(ticket.ticket.id);
+    LOG_DEBUG(logService) << "No need to update status ";
+    return ticket;
 }
 
 /**

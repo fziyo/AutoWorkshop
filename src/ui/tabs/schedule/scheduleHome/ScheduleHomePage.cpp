@@ -3,6 +3,7 @@
 #include "log/Log.h"
 #include "entity/Ticket.h"
 #include "ui/common/slotWidget/SlotWidget.h"
+#include "utils/TicketStatus.h"
 
 ScheduleHomePage::ScheduleHomePage(TicketService* ticketService, QWidget *parent)
     : QWidget(parent)
@@ -52,8 +53,9 @@ void ScheduleHomePage::loadWeek(const QDate& currentWeekStart)
         LOG_INFO(logUi) <<"date: " << ticket.scheduleDate;
         int col = ticket.scheduleDate.dayOfWeek()-1; // monday 1
         LOG_INFO(logUi) <<"day of week" <<col;
-
+        LOG_INFO(logUi) << "ticket status before update: " << ticketStatusToString(ticket.ticket.status);
         TicketDetailsDto updatedTicket = ticketService->refreshStatus(ticket);
+        LOG_INFO(logUi) << "updatedTicket status: " << ticketStatusToString(updatedTicket.ticket.status);
         foreach (int slotIndex, updatedTicket.slotIndexes)
         {
             int row = slotIndex;

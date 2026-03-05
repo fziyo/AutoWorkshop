@@ -294,7 +294,7 @@ TicketDetailsDto AutoWorkshopSql::getTicket(int ticketId)
                s.slot_index,
                e.name AS employee_name
         FROM tickets t
-        LEFT JOIN emp_schedule s ON t.id = s.ticket_id
+        LEFT JOIN emp_schedules s ON t.id = s.ticket_id
         LEFT JOIN employees e ON s.emp_id = e.id
         WHERE t.id = ?
     )");
