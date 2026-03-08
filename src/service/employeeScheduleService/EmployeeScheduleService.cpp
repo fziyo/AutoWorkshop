@@ -6,7 +6,6 @@
 
 EmployeeScheduleService::EmployeeScheduleService(AutoWorkshopSql* db):m_db(db)
 {
-    Q_ASSERT(m_db != nullptr);
 }
 
 EmpAvailability EmployeeScheduleService::checkEmployeeAvailability(const QString& empId, const QDate& appointedDate, const QList<int>& timeSlots)

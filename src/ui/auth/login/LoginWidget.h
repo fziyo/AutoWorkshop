@@ -3,7 +3,6 @@
 
 #include <QWidget>
 #include "context/AppContext.h"
-#include "service/authService/AuthService.h"
 
 namespace Ui {
 class LoginWidget;
@@ -27,7 +26,6 @@ private slots:
 
 private:
     Ui::LoginWidget *ui;
-    AuthService auth;
     void setLoginErrorLabel(const QString& errorMsg);
 };
 

@@ -15,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    // initalize db and services
+    AppContext::instance().init();
     tabNavigationController = new TabNavigationController(ui->tabWidget, this);
     ui->tabWidget->tabBar()->installEventFilter(this);
     ui->stackedWidget->setCurrentWidget(ui->pageLoginSignup);

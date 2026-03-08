@@ -2,6 +2,7 @@
 #include "ui_LoginWidget.h"
 #include "log/Log.h"
 #include <QDebug>
+#include "context/AppContext.h"
 
 LoginWidget::LoginWidget(QWidget *parent)
     : QWidget(parent)
@@ -25,7 +26,7 @@ void LoginWidget::onLoginClicked()
     setLoginErrorLabel("");
     const QString username = ui->usernameInput->text();
     const QString password = ui->passwordInput->text();
-    const LoginResult loginResult = auth.login(username, password);
+    const LoginResult loginResult = AppContext::instance().getAuthService()->login(username, password);
 
     if(!loginResult.ok || !loginResult.session.has_value())
     {

@@ -12,7 +12,6 @@
 AutoWorkshopSql::AutoWorkshopSql()
 {
     QString connectionName = "autoworkshop_vann";
-    LOG_DEBUG(logDb) << "Initializing database connection connectionName=" << connectionName;
     if (QSqlDatabase::contains(connectionName))
     {
         db = QSqlDatabase::database(connectionName);
@@ -24,28 +23,42 @@ AutoWorkshopSql::AutoWorkshopSql()
         LOG_DEBUG(logDb) << "Create new connection";
     }
 }
+// for test
+AutoWorkshopSql::AutoWorkshopSql(const QString& dbPath)
+{
+    QString connectionName = "test_" + QUuid::createUuid().toString();
+
+    db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+
+    if (!dbPath.isEmpty())
+    {
+        db.setDatabaseName(dbPath);
+    }
+}
 
 bool AutoWorkshopSql::openDb()
 {
     if (db.isOpen())
-    {
         return true;
-        LOG_DEBUG(logDb) << "Database already open";
+
+    if (db.databaseName().isEmpty())
+    {
+        QString dirPath =
+            QStandardPaths::writableLocation(
+                QStandardPaths::AppDataLocation);
+
+        QDir().mkpath(dirPath);
+
+        QString path = dirPath + "/autoworkshop_vann.db";
+        db.setDatabaseName(path);
     }
 
-    QString dirPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-
-    QDir().mkpath(dirPath);
-
-    QString path = dirPath + "/autoworkshop_vann.db";
-    db.setDatabaseName(path);
-    LOG_DEBUG(logDb) << "Opening database path=" << path;
     if (!db.open())
     {
-        LOG_ERROR(logDb) << "Failed to open database " << db.lastError().text();
+        LOG_ERROR(logDb) << db.lastError();
         return false;
     }
-    LOG_INFO(logDb) << "Database open success";
+
     return true;
 }
 
@@ -58,10 +71,12 @@ bool AutoWorkshopSql::isOpen() const
 
 void AutoWorkshopSql::close()
 {
-    if(db.isValid() && db.isOpen())
-    {
+    QString name = db.connectionName();
+
+    if (db.isOpen())
         db.close();
-    }
+    db = QSqlDatabase();
+    QSqlDatabase::removeDatabase(name);
 }
 
 QSqlQuery AutoWorkshopSql::createQuery()
@@ -211,10 +226,6 @@ bool AutoWorkshopSql::verifyUser(const QString& username, const QString& passwor
     if (userId) *userId = query.value(0).toInt();
     // if(role) *role = query.value(1).toString();
 
-    LOG_INFO(logDb)
-        << "Login success"
-        << "username=" << username
-        << "userId=" << *userId;
     return true;
 }
 
@@ -273,43 +284,43 @@ TicketDetailsDto AutoWorkshopSql::getTicket(int ticketId)
 {
     TicketDetailsDto dto;
 
-    if (!db.isOpen()) {
-        LOG_ERROR(logDb) << "getTicket failed: DB not open";
-        return dto;
-    }
-
-    QSqlQuery query = createQuery();
+    auto query = createQuery();
 
     query.prepare(R"(
-        SELECT t.id,
-               t.customer,
-               t.brand,
-               t.model,
-               t.regis_id,
-               t.description,
-               t.status,
-               t.total_to_pay,
-               t.created_at,
-               s.schedule_date,
-               s.slot_index,
-               e.name AS employee_name
+
+        SELECT
+            t.id,
+            t.customer,
+            t.brand,
+            t.model,
+            t.regis_id,
+            t.description,
+            t.status,
+            t.total_to_pay,
+            t.created_at,
+            s.schedule_date,
+            s.slot_index,
+            e.name AS employee_name
         FROM tickets t
         LEFT JOIN emp_schedules s ON t.id = s.ticket_id
         LEFT JOIN employees e ON s.emp_id = e.id
         WHERE t.id = ?
+
     )");
 
     query.addBindValue(ticketId);
 
-    if (!query.exec()) {
-        LOG_ERROR(logDb) << "getTicket query failed:"
-                         << query.lastError().text();
+    if (!query.exec())
+    {
+        LOG_ERROR(logDb) << query.lastError();
         return dto;
     }
 
+    bool ticketLoaded = false;
+
     while (query.next())
     {
-        if (dto.ticket.id == 0)
+        if (!ticketLoaded)
         {
             dto.ticket.id = query.value("id").toInt();
             dto.ticket.customer = query.value("customer").toString();
@@ -323,15 +334,19 @@ TicketDetailsDto AutoWorkshopSql::getTicket(int ticketId)
                 query.value("total_to_pay").toDouble();
             dto.ticket.createdAt =
                 query.value("created_at").toString();
+
+            ticketLoaded = true;
         }
 
         if (!query.value("schedule_date").isNull())
         {
-            QDate date = QDate::fromString(query.value("schedule_date").toString(), "yyyy-MM-dd");
+            dto.scheduleDate =
+                QDate::fromString(
+                    query.value("schedule_date").toString(),
+                    "yyyy-MM-dd");
 
-            dto.scheduleDate = date;
-
-            dto.slotIndexes.append(query.value("slot_index").toInt());
+            dto.slotIndexes.append(
+                query.value("slot_index").toInt());
         }
 
         if (!query.value("employee_name").isNull())
@@ -657,17 +672,17 @@ QList<Employee> AutoWorkshopSql::filterByName(const QString& name)
 int AutoWorkshopSql::countScheduleConflicts(const QString& empId, const QDate& appointedDate, const QList<int>& timeSlots)
 {
     qCInfo(logDb) << "Check employee schedule conflicts. ";
-    QStringList slotConditions;
+    QStringList slotIndexes;
     for (int i = 0; i < timeSlots.size(); ++i)
     {
         if (timeSlots[i] == 1)
         {
-            slotConditions.append(QString("slot%1 = 1").arg(i));
+            slotIndexes.append(QString::number(i));
         }
 
     }
 
-    if (slotConditions.isEmpty())
+    if (slotIndexes.isEmpty())
     {
         LOG_DEBUG(logDb)
         << "No time slots selected, skip conflict check"
@@ -677,11 +692,18 @@ int AutoWorkshopSql::countScheduleConflicts(const QString& empId, const QDate& a
     }
 
     auto query = createQuery();
-    QString sqlString = QString("SELECT COUNT(*) FROM emp_schedule WHERE emp_id = :empId AND schedule_date = :appointedDate AND %1")
-        .arg(slotConditions.join(" AND "));
-    query.prepare(sqlString);
+    QString sql = QString(R"(
+        SELECT COUNT(*)
+        FROM emp_schedules
+        WHERE emp_id = :empId
+        AND schedule_date = :date
+        AND slot_index IN (%1)
+    )").arg(slotIndexes.join(","));
+
+    query.prepare(sql);
     query.bindValue(":empId", empId);
-    query.bindValue(":appointedDate", appointedDate);
+    query.bindValue(":date", appointedDate.toString("yyyy-MM-dd"));
+
     if (!query.exec())
     {
         lastDbError = query.lastError().text();

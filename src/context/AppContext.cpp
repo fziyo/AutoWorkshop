@@ -9,26 +9,38 @@ AppContext& AppContext::instance()
     static AppContext context;
     return context;
 }
-
-AppContext::AppContext(QObject* parent):QObject(parent)
+// create context
+AppContext::AppContext(QObject* parent)
+    : QObject(parent)
+{
+}
+// initialize db and service
+void AppContext::init()
 {
     db = std::make_unique<AutoWorkshopSql>();
-    // open database
-    if (!db->openDb()) {
-        qFatal("Cannot open database");
-    }
-    // create tables if not exist
-    if (!db->initSchema()) {
-        qFatal("Cannot init database schema");
-    }
+
+    db->openDb();
+    db->initSchema();
+
+    authService = std::make_unique<AuthService>(db.get());
     ticketService = std::make_unique<TicketService>(db.get());
     employeeService = std::make_unique<EmployeeService>(db.get());
     employeeScheduleService = std::make_unique<EmployeeScheduleService>(db.get());
+}
+// for test
+void AppContext::setDb(AutoWorkshopSql* db_)
+{
+    db.reset(db_);
 }
 
 AutoWorkshopSql& AppContext::getDb()
 {
     return *db;
+}
+
+AuthService* AppContext::getAuthService()
+{
+    return authService.get();
 }
 
 TicketService* AppContext::getTicketService()
@@ -60,7 +72,7 @@ const std::optional<UserSession>& AppContext::getSession() const
 
 void AppContext::clearSession()
 {
-    m_session = UserSession{};
+    m_session.reset();
     emit sessionChanged();
 }
 

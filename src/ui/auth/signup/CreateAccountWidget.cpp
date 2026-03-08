@@ -3,6 +3,7 @@
 #include "service/authService/AuthService.h"
 #include "log/Log.h"
 #include <QMessageBox>
+#include "context/AppContext.h"
 
 CreateAccountWidget::CreateAccountWidget(QWidget *parent)
     : QWidget(parent)
@@ -29,7 +30,7 @@ void CreateAccountWidget::onCreateAccountClicked()
     setCreateAccountErrorLabel("");
     const QString username = ui->usernameInput->text();
     const QString password = ui->passwordInput->text();
-    const CreateAccountResult createAccountResult = auth.createAccount(username, password);
+    const CreateAccountResult createAccountResult = AppContext::instance().getAuthService()->createAccount(username, password);
 
     if(!createAccountResult.ok)
     {

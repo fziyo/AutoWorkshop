@@ -1,7 +1,10 @@
 #include "AuthService.h"
-#include "context/AppContext.h"
 
-// AuthService::AuthService() {}
+AuthService::AuthService(AutoWorkshopSql* db)
+    : m_db(db)
+{
+}
+
 LoginResult AuthService::login(const QString& username, const QString& password) const
 {
     LoginResult loginResult;
@@ -13,22 +16,20 @@ LoginResult AuthService::login(const QString& username, const QString& password)
         loginResult.error = "Username or password cannot be empty.";
         return loginResult;
     }
-    // access db
-    auto& db = AppContext::instance().getDb();
 
-    if(!db.isOpen())
+    if(!m_db->isOpen())
     {
         loginResult.ok = false;
-        loginResult.error = "Database err: " + db.getLastDbError() + ". Db is not open.";
+        loginResult.error = "Database err: " + m_db->getLastDbError() + ". Db is not open.";
         return loginResult;
     }
 
     // check if user exists in db and get id
     int userId = -1;
-    if (!db.verifyUser(username, password, &userId))
+    if (!m_db->verifyUser(username, password, &userId))
     {
         loginResult.ok = false;
-        loginResult.error = db.getLastDbError() + " verify user failed.";;
+        loginResult.error = m_db->getLastDbError() + " verify user failed.";;
         return loginResult;
     }
 
@@ -39,24 +40,27 @@ LoginResult AuthService::login(const QString& username, const QString& password)
 
 CreateAccountResult AuthService::createAccount(const QString& username, const QString& password)
 {
-    CreateAccountResult createAccountResult;
-    auto& db = AppContext::instance().getDb();
-    if (!db.checkUserExist(username))
+    CreateAccountResult result;
+    if (m_db->checkUserExist(username))
     {
-        if (db.createAccount(username, password))
-        {
-            createAccountResult.ok = true;
-        } else {
-            createAccountResult.ok = false;
-            createAccountResult.error = db.getLastDbError();
-        }
+        result.ok = false;
+        result.error =
+            "Account already exists, please log in.";
 
-    } else {
-        createAccountResult.ok = false;
-        createAccountResult.error = "Account already exists, please log in.";
+        return result;
     }
 
-    return createAccountResult;
+    if (m_db->createAccount(username, password))
+    {
+        result.ok = true;
+    }
+    else
+    {
+        result.ok = false;
+        result.error = m_db->getLastDbError();
+    }
+
+    return result;
 }
 
 

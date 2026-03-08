@@ -14,6 +14,8 @@ class AutoWorkshopSql
 {
 public:
     AutoWorkshopSql();
+    // for test
+    AutoWorkshopSql(const QString& dbPath);
     ~AutoWorkshopSql();
 
     bool openDb();
@@ -37,7 +39,7 @@ public:
     bool addEmployee(const EmployeeDto& info);
     QList<Employee> getAllEmployees();
     QList<Employee> filterByName(const QString& name);
-    int countScheduleConflicts(const QString& empId, const QDate& appointedDate, const QList<int>& timeSlots);
+    virtual int countScheduleConflicts(const QString& empId, const QDate& appointedDate, const QList<int>& timeSlots);
 
 private:
     QSqlDatabase db;

@@ -2,7 +2,6 @@
 #define CREATEACCOUNTWIDGET_H
 
 #include <QWidget>
-#include "service/authService/AuthService.h"
 
 namespace Ui {
 class CreateAccountWidget;
@@ -26,7 +25,6 @@ signals:
 private:
     void setCreateAccountErrorLabel(const QString& error);
     Ui::CreateAccountWidget *ui;
-    AuthService auth;
 };
 
 #endif // CREATEACCOUNTWIDGET_H

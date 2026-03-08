@@ -2,7 +2,6 @@
 #define AUTHSERVICE_H
 
 #include <QString>
-#include "context/AppContext.h"
 #include "service/authService/AuthTypes.h"
 
 // struct AuthResult
@@ -15,9 +14,12 @@
 class AuthService
 {
 public:
-    // AuthService();
+    AuthService(AutoWorkshopSql* db);
     LoginResult login(const QString& username, const QString& password) const;
     CreateAccountResult createAccount(const QString& username, const QString& password);
+
+private:
+    AutoWorkshopSql* m_db;
 };
 
 #endif // AUTHSERVICE_H
